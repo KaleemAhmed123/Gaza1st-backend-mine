@@ -339,8 +339,16 @@ export async function getCsvJobDownloadUrl(userId: string, roles: string[], jobI
     };
   }
 
-  const url = await getCsvDownloadUrl(job.storageKey!, job.storageBucket!);
-  if (!url) throw new ApiError(500, "Could not generate download URL");
+  if (!job.storageKey || !job.storageBucket) {
+    throw new ApiError(404, "CSV file is no longer available. Please regenerate the export.");
+  }
+
+  const url = await getCsvDownloadUrl(job.storageKey, job.storageBucket);
+  if (!url) {
+    // Signed URL generation failed (e.g. a transient storage/credential issue).
+    // Return a clear, retryable error rather than a generic 500.
+    throw new ApiError(503, "Could not generate the download link right now. Please try again in a moment.");
+  }
 
   return { url, expiresAt: job.expiresAt };
 }
