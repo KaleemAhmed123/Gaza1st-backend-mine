@@ -313,8 +313,14 @@ export async function updateVolunteerAssignment(input: {
       throw new ApiError(403, "Regional Admin cannot assign volunteers to another region");
     }
 
-    if (volunteer.volunteerProfile.preferredRegionId !== scope.regionId) {
-      throw new ApiError(403, "Regional Admin can only manage volunteers already assigned to their region");
+    // Regional admins may act on volunteers in their own region OR volunteers that
+    // are still unassigned (preferredRegionId == null) — those appear in the regional
+    // list, so blocking rejection of them left "Global / Unassigned" volunteers unactionable.
+    if (
+      volunteer.volunteerProfile.preferredRegionId &&
+      volunteer.volunteerProfile.preferredRegionId !== scope.regionId
+    ) {
+      throw new ApiError(403, "Regional Admin can only manage volunteers in their own region or unassigned volunteers");
     }
 
     if (input.data.mentorEnabled === false) {
