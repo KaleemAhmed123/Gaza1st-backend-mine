@@ -799,6 +799,39 @@ export async function resolveAdminQuery(input: {
   return updatedQuery;
 }
 
+export async function reopenAdminQuery(input: {
+  userId: string;
+  queryId: string;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  const query = await getAdminQuery(input.userId, input.queryId);
+
+  if (query.status !== QueryStatus.resolved) {
+    return query;
+  }
+
+  // Reopen to "assigned" if a mentor is still assigned, otherwise back to the open pool.
+  const nextStatus = query.assignedToUserId ? QueryStatus.assigned : QueryStatus.open;
+
+  const updatedQuery = await (prisma.query as any).update({
+    where: { id: query.id },
+    data: { status: nextStatus, resolvedAt: null },
+    include: queryInclude
+  });
+
+  await recordAuditLog({
+    actorUserId: input.userId,
+    action: "query_reopened",
+    entityType: "query",
+    entityId: query.id,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent
+  });
+
+  return updatedQuery;
+}
+
 /**
  * Regional Admin escalates a query to Master Admin.
  * Posts an escalation remark in the thread and notifies all master admins.

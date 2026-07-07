@@ -5,7 +5,8 @@ import {
   escalateAdminQuery,
   getAdminQuery,
   listAdminQueries,
-  resolveAdminQuery
+  resolveAdminQuery,
+  reopenAdminQuery
 } from "./query.service";
 import {
   addQueryMessageSchema,
@@ -51,6 +52,16 @@ export const addAdminQueryMessageHandler = asyncHandler(async (req, res) => {
 
 export const resolveAdminQueryHandler = asyncHandler(async (req, res) => {
   const query = await resolveAdminQuery({
+    userId: req.authUser!.id,
+    queryId: req.params.id,
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent")
+  });
+  sendSuccess(res, { query });
+});
+
+export const reopenAdminQueryHandler = asyncHandler(async (req, res) => {
+  const query = await reopenAdminQuery({
     userId: req.authUser!.id,
     queryId: req.params.id,
     ipAddress: req.ip,

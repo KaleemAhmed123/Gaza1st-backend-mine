@@ -7,7 +7,8 @@ import {
   escalateAdminQueryHandler,
   getAdminQueryHandler,
   listAdminQueriesHandler,
-  resolveAdminQueryHandler
+  resolveAdminQueryHandler,
+  reopenAdminQueryHandler
 } from "./admin-query.controller";
 import {
   acceptMentorQueryHandler,
@@ -40,6 +41,7 @@ adminQueryRouter.get("/:id", getAdminQueryHandler);
 adminQueryRouter.patch("/:id/assign", assignQueryHandler);
 adminQueryRouter.post("/:id/messages", addAdminQueryMessageHandler);
 adminQueryRouter.patch("/:id/resolve", resolveAdminQueryHandler);
+adminQueryRouter.patch("/:id/reopen", reopenAdminQueryHandler);
 adminQueryRouter.patch("/:id/escalate", escalateAdminQueryHandler);
 
 mentorQueryRouter.use(requireAuth, requireActiveMentor);
