@@ -791,3 +791,71 @@ These files should not be committed unless deliberately needed:
 - `src/server.ts`
   - Added stuck job fail-safe recovery on startup and registered cleanup cron.
 
+
+---
+
+## 2026-07-07 — Bug-fix & feature batch (vibe-coder cleanup)
+
+Fixes and small feature completions across backend + frontend (frontend repo:
+`C:\Users\hp\Desktop\gaza40plus`). Grouped by the tracking IDs used during the work.
+
+### Backend files updated
+
+- `prisma/schema.prisma`
+  - `DocumentType` enum: added `tawjihi`, `cv` (optional student docs).
+  - `Announcement` model: added `guideFileName`, `guideStorageKey`, `guideStorageBucket` (PDF guide attachment).
+- `src/modules/admin/volunteers/admin-volunteer-grid.service.ts` (A5)
+  - Regional admins may now reject/manage volunteers in their own region OR unassigned volunteers
+    (`preferredRegionId == null`); other regions still blocked.
+- `src/modules/offers/offer.service.ts` (A7, B1, B2)
+  - `submitMyOffer`: tags `OFFER_SUBMITTED` with `submissionKind` (`requested_edits` vs `new`).
+  - `updateMyOffer`: emits an in-app `OFFER_SUBMITTED` event on approved-offer edits (was email-only).
+  - New `removeOfferAsAdmin` (soft delete, `canReviewOffer` gate, audit `offer_removed_by_admin`).
+  - `reviewOffer`: now allows re-review from `approved`/`rejected` (not just `under_review`); recomputes
+    `hasVerifiedOffer` when un-approving.
+- `src/modules/offers/admin-offer.controller.ts` & `admin-offer.routes.ts` (B1)
+  - `deleteAdminOfferHandler` + `DELETE /api/admin/offers/:id`.
+- `src/modules/notifications/notification.listeners.ts` (A7)
+  - `OFFER_SUBMITTED` copy varies by `submissionKind` ("submitted an offer with requested edits").
+- `src/modules/queries/query.service.ts`, `admin-query.controller.ts`, `query.routes.ts` (B3)
+  - New `reopenAdminQuery` + `PATCH /api/admin/queries/:id/reopen` (resolved → assigned/open).
+- `src/modules/csv-generator/csv-job.service.ts` (A8)
+  - `getCsvJobDownloadUrl`: guards missing key/bucket, returns retryable 503 instead of a generic 500.
+- `src/modules/announcements/*` (B6)
+  - `setAnnouncementGuide` / `removeAnnouncementGuide` / `getAnnouncementGuideForDownload` in service;
+    handlers + routes `POST`/`DELETE /api/admin/announcements/:id/guide` and public
+    `GET /api/announcements/:id/guide` (redirects to signed URL or streams local).
+- `src/modules/documents/document.constants.ts` (B7)
+  - Added `tawjihi`, `cv` to allowed + profile + mentor-visible + regional-visible doc sets.
+
+### New API routes (Postman collection needs regeneration)
+
+- `DELETE /api/admin/offers/:id`
+- `PATCH /api/admin/queries/:id/reopen`
+- `POST /api/admin/announcements/:id/guide` (multipart), `DELETE /api/admin/announcements/:id/guide`
+- `GET /api/announcements/:id/guide`
+
+### Frontend files updated (gaza40plus)
+
+- `src/components/shared/NotificationDropdown.tsx` (A1) — removed role-based link rewrite (caused 404s);
+  uses backend-computed link as-is.
+- `src/app/regional-admin/offer-reviews/page.tsx` (A2, B1, B2) — clear spinner on cache hit; delete button; re-review approved.
+- `src/app/regional-admin/queries/page.tsx` + `src/app/admin/queries/page.tsx` (A3, B3) — optimistic query
+  select; resolve + reopen buttons.
+- `src/app/chat/components/NewDirectChatModal.tsx` (A4) — admin can pick target role (mentor, etc.).
+- `src/app/student/offers/page.tsx` (A6) — client-side validation for courseField/courseLevel + placeholders.
+- `src/app/admin/offers/page.tsx` (B1, B2, B4) — delete, re-review approved, and assign-mentor UI.
+- `src/app/admin/students/page.tsx`, `regional-admin/students/page.tsx`, `admin/students/[id]/page.tsx`,
+  `src/lib/apiAdapters.ts` (B5) — passport validity/expiry column + fuller detail (passport expiry/number,
+  emergency email/location).
+- `src/app/admin/announcements/page.tsx`, `src/components/shared/PublishedAnnouncementDetail.tsx`,
+  `src/redux/slices/announcementsSlice.ts`, `src/lib/apiAdapters.ts` (B6) — PDF guide upload + download button.
+- `src/app/onboarding/page.tsx` (B7) — optional Tawjihi + CV uploads with a "may affect funding" notice.
+- `src/app/student/university-processes/page.tsx` (C) — guard regionId to a valid ObjectId before querying
+  (fixes the "Validation failed" error).
+
+### No change needed (verified already correct)
+
+- Dashboard total funding gap already sums each student's smallest per-year gap across approved offers.
+- Profile `changes_requested` already routes the student to a "Modify Profile Questionnaire" flow.
+- Regional CSV export is already region-scoped.
