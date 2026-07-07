@@ -457,6 +457,16 @@ export async function updateMyOffer(input: {
         courseName: offer.courseName,
         reason: "edited_after_approval"
       });
+
+      // Editing an approved offer sends it back to review — admins need an in-app
+      // notification too (previously only an email was sent, so the bell stayed silent).
+      appEmitter.emit(AppEvents.OFFER_SUBMITTED, {
+        studentUserId: input.userId,
+        studentName: student.fullName,
+        offerId: existingOffer.id,
+        regionId: offer.regionId,
+        submissionKind: "requested_edits"
+      });
     }
   }
 
@@ -502,6 +512,45 @@ export async function removeMyOffer(input: {
   return removedOffer;
 }
 
+export async function removeOfferAsAdmin(input: {
+  userId: string;
+  offerId: string;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  const offer = await prisma.offer.findFirst({
+    where: { id: input.offerId, deletedAt: null }
+  });
+
+  if (!offer) {
+    throw new ApiError(404, "Offer not found");
+  }
+
+  // Master admin (all regions) or regional admin (own region only) — same gate as review/assign.
+  if (!(await canReviewOffer(input.userId, offer.regionId))) {
+    throw new ApiError(403, "You do not have permission to delete this offer");
+  }
+
+  const removedOffer = await prisma.offer.update({
+    where: { id: offer.id },
+    data: {
+      reviewStatus: OfferReviewStatus.removed,
+      deletedAt: new Date()
+    }
+  });
+
+  await recordAuditLog({
+    actorUserId: input.userId,
+    action: "offer_removed_by_admin",
+    entityType: "offer",
+    entityId: offer.id,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent
+  });
+
+  return removedOffer;
+}
+
 export async function submitMyOffer(input: {
   userId: string;
   offerId: string;
@@ -517,6 +566,9 @@ export async function submitMyOffer(input: {
   if (!offer) {
     throw new ApiError(404, "Offer not found");
   }
+
+  // A resubmission after "changes requested" should read differently to admins than a brand-new offer.
+  const isResubmission = offer.reviewStatus === OfferReviewStatus.changes_requested;
 
   if (
     offer.reviewStatus !== OfferReviewStatus.draft &&
@@ -600,7 +652,8 @@ export async function submitMyOffer(input: {
       studentUserId: input.userId,
       studentName: student.fullName,
       offerId: submittedOffer.id,
-      regionId: submittedOffer.regionId
+      regionId: submittedOffer.regionId,
+      submissionKind: isResubmission ? "requested_edits" : "new"
     });
   }
 
@@ -1043,14 +1096,23 @@ export async function reviewOffer(input: {
     throw new ApiError(403, "You do not have permission to review this offer");
   }
 
-  if (offer.reviewStatus !== OfferReviewStatus.under_review) {
-    throw new ApiError(409, "Only offers under review can be reviewed");
+  // Offers under review can be reviewed; already-decided offers (approved/rejected) can also be
+  // re-flagged by an admin/mentor (e.g. reject or request changes after approval). Draft and
+  // changes_requested belong to the student's edit cycle, and removed offers are gone.
+  const reviewableStatuses: OfferReviewStatus[] = [
+    OfferReviewStatus.under_review,
+    OfferReviewStatus.approved,
+    OfferReviewStatus.rejected
+  ];
+  if (!reviewableStatuses.includes(offer.reviewStatus)) {
+    throw new ApiError(409, "This offer cannot be reviewed in its current status");
   }
 
+  const wasApproved = offer.reviewStatus === OfferReviewStatus.approved;
   const nextStatus = input.data.status as OfferReviewStatus;
   const reviewedOffer = await prisma.$transaction(async (tx) => {
     const updatedOffer = await tx.offer.update({
-      where: { id: offer.id, reviewStatus: OfferReviewStatus.under_review },
+      where: { id: offer.id },
       data: {
         reviewStatus: nextStatus,
         lockedForReview: nextStatus === OfferReviewStatus.approved || nextStatus === OfferReviewStatus.rejected,
@@ -1065,6 +1127,20 @@ export async function reviewOffer(input: {
       await tx.studentProfile.update({
         where: { userId: offer.studentUserId },
         data: { hasVerifiedOffer: true }
+      });
+    } else if (wasApproved) {
+      // Un-approving: keep hasVerifiedOffer only if the student still has another approved offer.
+      const otherApproved = await tx.offer.count({
+        where: {
+          studentUserId: offer.studentUserId,
+          reviewStatus: OfferReviewStatus.approved,
+          deletedAt: null,
+          id: { not: offer.id }
+        }
+      });
+      await tx.studentProfile.update({
+        where: { userId: offer.studentUserId },
+        data: { hasVerifiedOffer: otherApproved > 0 }
       });
     }
 

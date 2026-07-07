@@ -97,8 +97,13 @@ appEmitter.on(AppEvents.PROFILE_CHANGES_REQUESTED, (payload: { studentUserId: st
 // Offer Events
 // ---------------------------------------------------------------------------
 
-appEmitter.on(AppEvents.OFFER_SUBMITTED, async (payload: { studentUserId: string, studentName: string, offerId: string, regionId: string }) => {
+appEmitter.on(AppEvents.OFFER_SUBMITTED, async (payload: { studentUserId: string, studentName: string, offerId: string, regionId: string, submissionKind?: "new" | "requested_edits" }) => {
   // We notify admins (Master & Regional)
+  const isRequestedEdits = payload.submissionKind === "requested_edits";
+  const title = isRequestedEdits ? "Offer Resubmitted" : "New Offer Submitted";
+  const body = isRequestedEdits
+    ? `${payload.studentName} has submitted an offer with requested edits for review.`
+    : `${payload.studentName} has submitted a new offer for review.`;
   try {
     const admins = await prisma.user.findMany({
       where: {
@@ -124,8 +129,8 @@ appEmitter.on(AppEvents.OFFER_SUBMITTED, async (payload: { studentUserId: string
       safelyDispatchNotification({
         userId: admin.id,
         type: "admin_offer_submitted",
-        title: "New Offer Submitted",
-        body: `${payload.studentName} has submitted a new offer for review.`,
+        title,
+        body,
         link: link
       });
     });

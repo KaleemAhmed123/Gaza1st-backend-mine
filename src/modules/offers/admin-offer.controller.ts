@@ -6,7 +6,8 @@ import {
   getAdminOfferRevisions,
   listAdminOffers,
   reviewOffer,
-  assignMentorToOffer
+  assignMentorToOffer,
+  removeOfferAsAdmin
 } from "./offer.service";
 import { listAdminOffersQuerySchema, reviewOfferSchema, assignOfferMentorSchema } from "./offer.validation";
 
@@ -62,4 +63,14 @@ export const assignOfferMentorHandler = asyncHandler(async (req, res) => {
     userAgent: req.get("user-agent")
   });
   sendSuccess(res, { offer });
+});
+
+export const deleteAdminOfferHandler = asyncHandler(async (req, res) => {
+  await removeOfferAsAdmin({
+    userId: req.authUser!.id,
+    offerId: req.params.id,
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent")
+  });
+  sendSuccess(res, { success: true });
 });

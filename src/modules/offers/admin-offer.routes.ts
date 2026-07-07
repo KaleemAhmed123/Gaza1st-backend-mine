@@ -6,7 +6,8 @@ import {
   getAdminOfferRevisionsHandler,
   listAdminOffersHandler,
   reviewOfferHandler,
-  assignOfferMentorHandler
+  assignOfferMentorHandler,
+  deleteAdminOfferHandler
 } from "./admin-offer.controller";
 
 export const adminOfferRouter = Router();
@@ -18,3 +19,4 @@ adminOfferRouter.get("/:id/revisions", getAdminOfferRevisionsHandler);
 adminOfferRouter.get("/:id", getAdminOfferHandler);
 adminOfferRouter.patch("/:id/review", reviewOfferHandler);
 adminOfferRouter.patch("/:id/assign", assignOfferMentorHandler);
+adminOfferRouter.delete("/:id", deleteAdminOfferHandler);
