@@ -131,7 +131,7 @@ export function initSocket(server: HttpServer) {
                type: "chat_message",
                title: "New Message",
                body: `New message from ${message.sender?.fullName || "someone"}`,
-               link: `/chat/${data.conversationId}`
+               link: `/chat?conversationId=${data.conversationId}`
              });
           }
         });
