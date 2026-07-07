@@ -1,4 +1,5 @@
-import { asyncHandler, sendSuccess } from "../../shared/http";
+import path from "path";
+import { asyncHandler, ApiError, sendSuccess } from "../../shared/http";
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -6,7 +7,10 @@ import {
   getPublishedAnnouncement,
   listAdminAnnouncements,
   listPublishedAnnouncements,
-  updateAnnouncement
+  updateAnnouncement,
+  setAnnouncementGuide,
+  removeAnnouncementGuide,
+  getAnnouncementGuideForDownload
 } from "./announcement.service";
 import {
   createAnnouncementSchema,
@@ -68,4 +72,33 @@ export const deleteAnnouncementHandler = asyncHandler(async (req, res) => {
     userAgent: req.get("user-agent")
   });
   sendSuccess(res, { announcement });
+});
+
+export const uploadAnnouncementGuideHandler = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw new ApiError(400, "No file uploaded");
+  }
+  const announcement = await setAnnouncementGuide({
+    user: req.authUser!,
+    announcementId: req.params.id,
+    file: req.file
+  });
+  sendSuccess(res, { announcement });
+});
+
+export const removeAnnouncementGuideHandler = asyncHandler(async (req, res) => {
+  const announcement = await removeAnnouncementGuide({
+    user: req.authUser!,
+    announcementId: req.params.id
+  });
+  sendSuccess(res, { announcement });
+});
+
+export const downloadAnnouncementGuideHandler = asyncHandler(async (req, res) => {
+  const guide = await getAnnouncementGuideForDownload(req.params.id, req.authUser!);
+  if (guide.isLocal) {
+    res.download(path.join(process.cwd(), guide.key), guide.fileName);
+    return;
+  }
+  res.redirect(guide.url);
 });

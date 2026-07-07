@@ -2,6 +2,7 @@ import { prisma } from "../../db/prisma";
 import { recordAuditLog } from "../../shared/audit";
 import { ApiError } from "../../shared/http";
 import { appEmitter, AppEvents } from "../../shared/events";
+import { uploadToStorage, getSignedStorageUrl, deleteFromStorage } from "../../shared/storage";
 import type {
   CreateAnnouncementInput,
   ListAdminAnnouncementsQuery,
@@ -378,6 +379,84 @@ export async function updateAnnouncement(input: {
   }
 
   return updatedAnnouncement;
+}
+
+export async function setAnnouncementGuide(input: {
+  user: { id: string; roles: string[] };
+  announcementId: string;
+  file: { buffer: Buffer; originalname: string; mimetype: string };
+}) {
+  const announcement = await ensureAnnouncement(input.announcementId);
+  ensureAuthorOrAdmin(announcement, input.user);
+
+  if (input.file.mimetype !== "application/pdf") {
+    throw new ApiError(400, "The announcement guide must be a PDF file");
+  }
+
+  const { key, bucket } = await uploadToStorage(
+    input.file.buffer,
+    input.file.originalname,
+    input.file.mimetype,
+    "announcement-guides"
+  );
+
+  // Remove the previous guide file if one existed.
+  if (announcement.guideStorageKey && announcement.guideStorageBucket) {
+    await deleteFromStorage(announcement.guideStorageKey, announcement.guideStorageBucket).catch(() => undefined);
+  }
+
+  return (prisma.announcement as any).update({
+    where: { id: announcement.id },
+    data: {
+      guideFileName: input.file.originalname,
+      guideStorageKey: key,
+      guideStorageBucket: bucket
+    },
+    include: announcementInclude
+  });
+}
+
+export async function removeAnnouncementGuide(input: {
+  user: { id: string; roles: string[] };
+  announcementId: string;
+}) {
+  const announcement = await ensureAnnouncement(input.announcementId);
+  ensureAuthorOrAdmin(announcement, input.user);
+
+  if ((announcement as any).guideStorageKey && (announcement as any).guideStorageBucket) {
+    await deleteFromStorage((announcement as any).guideStorageKey, (announcement as any).guideStorageBucket).catch(() => undefined);
+  }
+
+  return (prisma.announcement as any).update({
+    where: { id: announcement.id },
+    data: { guideFileName: null, guideStorageKey: null, guideStorageBucket: null },
+    include: announcementInclude
+  });
+}
+
+/**
+ * Resolves the guide file for download. Returns either a signed R2 URL to redirect to,
+ * or a local file path to stream. View access follows the same region rules as the announcement.
+ */
+export async function getAnnouncementGuideForDownload(id: string, user: { id: string; roles: string[] }) {
+  const announcement = await getPublishedAnnouncement(id, user);
+  const key = (announcement as any).guideStorageKey as string | null;
+  const bucket = (announcement as any).guideStorageBucket as string | null;
+  const fileName = (announcement as any).guideFileName as string | null;
+
+  if (!key || !bucket) {
+    throw new ApiError(404, "This announcement has no guide file");
+  }
+
+  if (bucket === "local_private") {
+    return { isLocal: true as const, key, fileName: fileName || "guide.pdf" };
+  }
+
+  const url = await getSignedStorageUrl(key, bucket, 3600, fileName || undefined);
+  if (!url) {
+    throw new ApiError(503, "Could not generate the guide download link right now. Please try again.");
+  }
+  return { isLocal: false as const, url, fileName: fileName || "guide.pdf" };
 }
 
 export async function deleteAnnouncement(input: {
