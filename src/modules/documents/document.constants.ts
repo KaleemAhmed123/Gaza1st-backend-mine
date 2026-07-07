@@ -8,7 +8,9 @@ export const allowedDocumentTypes = [
   DocumentType.offer_letter,
   DocumentType.scholarship_letter,
   DocumentType.signature,
-  DocumentType.english_proficiency
+  DocumentType.english_proficiency,
+  DocumentType.tawjihi,
+  DocumentType.cv
 ] as const;
 
 export const profileDocumentTypes = new Set<DocumentType>([
@@ -17,7 +19,9 @@ export const profileDocumentTypes = new Set<DocumentType>([
   DocumentType.moi_letter,
   DocumentType.consent_form,
   DocumentType.signature,
-  DocumentType.english_proficiency
+  DocumentType.english_proficiency,
+  DocumentType.tawjihi,
+  DocumentType.cv
 ]);
 
 export const offerDocumentTypes = new Set<DocumentType>([
@@ -31,7 +35,9 @@ export const mentorVisibleDocumentTypes = new Set<DocumentType>([
   DocumentType.consent_form,
   DocumentType.offer_letter,
   DocumentType.scholarship_letter,
-  DocumentType.english_proficiency
+  DocumentType.english_proficiency,
+  DocumentType.tawjihi,
+  DocumentType.cv
 ]);
 
 // Document types that regional admins can access
@@ -39,7 +45,9 @@ export const regionalAdminVisibleProfileDocumentTypes = new Set<DocumentType>([
   DocumentType.moi_letter,
   DocumentType.consent_form,
   DocumentType.signature,
-  DocumentType.english_proficiency
+  DocumentType.english_proficiency,
+  DocumentType.tawjihi,
+  DocumentType.cv
 ]);
 
 // Document types restricted to image uploads only
