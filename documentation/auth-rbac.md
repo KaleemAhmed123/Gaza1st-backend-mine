@@ -13,6 +13,11 @@
 - `mentor`
 - `regional_admin`
 - `master_admin`
+- `reviewer` — reviews student profiles without full master-admin authority. Resolved by
+  `getAdminScope()` in `src/shared/auth-scope.ts` (returns `{ role: "reviewer" }`). Notification
+  deep links route reviewers to `/reviewer/student-reviews`.
+
+Note: `User.roles` is an **array** — a user may hold multiple roles.
 
 ## Current Middleware
 
@@ -61,9 +66,15 @@
 - Do not log passwords, JWTs, auth cookies, uploaded file contents, document filenames, or sensitive profile details.
 - If a future feature needs structured logging, add explicit redaction first.
 
+## CSRF (ENFORCED)
+
+- CSRF protection **is enforced** globally by `requireCsrfHeader` in `src/app.ts` (older docs calling it
+  "deferred" are stale). Every non-GET/HEAD/OPTIONS request must send header
+  `x-requested-with: XMLHttpRequest`, else it is rejected with 403. The frontend axios instance sets
+  this header on all requests.
+
 ## Deferred Security Work
 
-- CSRF token middleware is deferred while the frontend integration is not built. Current cookies use `SameSite=Lax`.
 - Account lockout and email-change verification are deferred.
 - Redis-backed/distributed rate limiting is deferred until deployment needs it.
 

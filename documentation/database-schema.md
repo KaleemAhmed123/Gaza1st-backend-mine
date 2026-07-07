@@ -1,11 +1,20 @@
 # Database Schema Reference
 
-This file defines the simplified target database schema. `vision/requirements.md` remains the source of truth for product behavior.
+The **definitive** schema is `prisma/schema.prisma` (`provider = "mongodb"`). This file is a narrative
+reference. `vision/requirements.md` remains the source of truth for product behavior.
+
+> **MongoDB legacy-name gotcha:** several models map to differently-named collections/fields created in
+> an earlier "Alert" era. See `CLAUDE.md` §5 — `Query`→collection `Alert`, `QueryMessage`→`AlertMessage`,
+> `Query.queryType`→`alertType`, `QueryMessage.queryId`→`alertId`, `QueryStatus`→`AlertStatus`
+> (`assigned`→`in_progress`), `Region.code`/`name`→`countryCode`/`countryName`.
+>
+> **Models added since this narrative was first written** (see `schema.prisma` for fields): `Notification`,
+> `Conversation`, `ConversationMember`, `ChatMessage` (realtime chat), and `CsvJob` (background exports).
 
 ## Design Decisions
 
 - Keep `Region` as a real configurable master table because it controls universities, offers, regional admins, queries, filtering, and access control.
-- Store user roles directly on `User.roles` because the system has only four fixed roles and does not need role records yet.
+- Store user roles directly on `User.roles` (an array) because the system has a small fixed set of roles (`student`, `mentor`, `regional_admin`, `master_admin`, `reviewer`) and does not need role records yet.
 - Use `RegionalAdminProfile` instead of `AdminRegion` because one regional admin belongs to exactly one region, while one region may have many regional admins.
 - Link `Offer` directly to the student `User` through `studentUserId`, not to `StudentProfile`, to reduce nesting.
 - Keep `StudentProfile` for student-specific registration and review fields.
@@ -49,11 +58,12 @@ Relationships:
 - many `AuthToken`
 - many `AuditLog`
 
-Role values:
+Role values (`roles` is an array; a user may hold several):
 - `student`
 - `mentor`
 - `regional_admin`
 - `master_admin`
+- `reviewer`
 
 ### Profiles
 
@@ -269,6 +279,8 @@ Current document types:
 - `consent_form`
 - `offer_letter`
 - `scholarship_letter`
+- `signature`
+- `english_proficiency`
 
 Rules:
 - Files live outside the database.

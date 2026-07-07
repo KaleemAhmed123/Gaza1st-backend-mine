@@ -9,8 +9,10 @@
 5. Student submits profile.
 6. System validates required fields and required documents.
 7. Profile moves to `under_review`.
-8. Master Admin approves, requests changes, or rejects.
-9. If email is configured, Master Admins receive a best-effort review notification when the profile is submitted.
+8. Master Admin **or Reviewer** approves, requests changes, or rejects.
+9. On submit, an in-app notification (via the event system) is sent to the student and to all active
+   Master Admins and Reviewers; a best-effort email may also be sent if configured.
+   See `documentation/async-and-realtime.md`.
 
 ## Profile Statuses
 
@@ -85,6 +87,8 @@
 9. Assigned mentor and student exchange chronological messages under the same ticket.
 10. Admin or assigned mentor resolves the query.
 11. Resolved queries are read-only in MVP.
+12. Queries can be **escalated** (`isEscalated`) to master or regional admins; escalation fires the
+    `QUERY_ESCALATED` event, notifying the target admins (`documentation/async-and-realtime.md`).
 
 ## Query Statuses
 
@@ -136,13 +140,17 @@
 5. Admins can export the same filtered result set as CSV.
 6. If an approved offer is edited, admin offer detail exposes revision changes for field-level highlighting.
 
-## CSV Export Flow
+## CSV Export Flow (background jobs)
 
-1. Admin applies filters on students, volunteers, or offers.
-2. Admin calls the matching `/export` endpoint.
-3. System applies the same server-side RBAC and regional isolation as the grid endpoint.
-4. System returns a CSV file response.
-5. System writes an audit log with actor, scope, filters, and row count.
+1. Admin applies filters on students, mentors, or regional admins.
+2. Admin submits an export request, which creates a `CsvJob` (`status: pending`).
+3. The job is processed **asynchronously** (`generating → completed`); it is not returned inline.
+4. The same server-side RBAC and regional isolation as the grid endpoint is applied.
+5. The result CSV is stored in R2 and served via a signed URL (expires after `CSV_SIGNED_URL_TTL_DAYS`).
+6. Jobs stuck in `generating` after a crash are reset to `failed` on boot; a cron cleans up expired jobs.
+7. An audit log records actor, scope, filters, and row count.
+
+See `documentation/async-and-realtime.md` for the full job lifecycle.
 
 ## Audit Log Flow
 
