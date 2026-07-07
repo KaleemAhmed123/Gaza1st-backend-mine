@@ -1,15 +1,6 @@
 ---
-
 name: gaza40plus-architecture
-
-description: |
-Provides architectural context, repository organization, engineering conventions,
-and development workflow for the Gaza40Plus platform.
-
-Use this skill whenever implementing new features, debugging issues,
-reviewing code, refactoring existing functionality,
-or navigating the Gaza40Plus repositories.
-
+description: Architectural context, repository organization, engineering conventions, and development workflow for the Gaza40+ platform (backend and frontend). Use when implementing features, debugging, reviewing, refactoring, or navigating the repos.
 ---
 
 # Gaza40Plus Architecture Skill

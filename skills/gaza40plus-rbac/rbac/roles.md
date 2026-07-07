@@ -92,3 +92,25 @@ A global system administrator with full administrative control and oversight ove
 ### Typical Workflows
 * **System Operations**: Creating new regional divisions, updating platform settings, broadcasting portal-wide announcements, and auditing user actions.
 * **High-Level Verification**: Accessing and validating sensitive identity files (Passport/ID uploads) to verify student profiles globally and resolving cross-regional escalations.
+
+---
+
+## 5. Reviewer
+
+### Purpose
+A dedicated profile reviewer added after the original four roles. The Reviewer focuses on evaluating
+and actioning **student profiles** (approve / request changes / reject) without holding full
+Master Admin authority over platform settings, users, or regions.
+
+### Scope of Access
+* **Review-scoped**: Can list and open submitted student profiles for review and record a decision.
+* Resolved by `getAdminScope()` (`src/shared/auth-scope.ts`), which returns `{ role: "reviewer" }`.
+* **Not** a settings/user administrator: no global platform configuration, role management, or
+  regional-admin management.
+* Notification deep links route reviewers to `/reviewer/student-reviews`.
+
+### Notes
+* `User.roles` is an array, so a user could in principle hold `reviewer` alongside another role.
+* When adding permission logic, treat Reviewer explicitly — do not assume it collapses into
+  Master Admin or Regional Admin. Prefer the least-privileged interpretation and confirm against
+  `src/shared/auth-scope.ts` and the relevant service.

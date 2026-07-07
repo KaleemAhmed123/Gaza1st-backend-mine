@@ -1,15 +1,6 @@
 ---
-
 name: gaza40plus-rbac
-
-description: |
-Provides the Role-Based Access Control (RBAC) model for the Gaza40Plus platform.
-
-Use this skill whenever implementing, debugging, reviewing, or modifying
-authentication, authorization, ownership validation, document access,
-approval workflows, mentor assignment, regional access,
-dashboard visibility, or any feature that depends on user permissions.
-
+description: The Role-Based Access Control (RBAC) model for the Gaza40+ platform. Use when implementing, debugging, reviewing, or modifying authentication, authorization, ownership validation, document access, approval workflows, mentor assignment, regional access, dashboard visibility, or any permission-dependent feature.
 ---
 
 # Gaza40Plus RBAC Skill
