@@ -84,6 +84,8 @@ enum DocumentType {
   scholarship_letter
   signature
   english_proficiency
+  tawjihi
+  cv
 }
 
 enum DocumentStatus {
@@ -439,6 +441,9 @@ model Announcement {
   isPublished     Boolean   @default(false)
   showApplyButton Boolean   @default(false)
   applyLink       String?
+  guideFileName      String?
+  guideStorageKey    String?
+  guideStorageBucket String?
   publishedAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
