@@ -1,6 +1,6 @@
 import { prisma } from "../../db/prisma";
 import { formatCsvRow } from "../../shared/csv";
-import { generateCsvDocToken } from "../documents/csv-doc-token";
+import { createShortLink } from "../documents/csv-doc-token";
 import { calculateOfferFinancialSummary, parseFinancialRules } from "../offers/offer-financial";
 import { REGIONAL_ADMIN_COLUMNS } from "./csv-column-definitions";
 import type { CsvJob } from "@prisma/client";
@@ -157,9 +157,12 @@ export async function runRegionalAdminExport(
         if (filters.activeOffer !== undefined && filters.activeOffer !== activeOffer) continue;
 
         const offerLetterDoc = offer.documents[0];
-        const offerLetterUrl = offerLetterDoc
-          ? `${apiBase}/api/documents/${offerLetterDoc.id}/signed-download?token=${generateCsvDocToken(offerLetterDoc.id)}`
-          : "";
+        let offerLetterUrl = "";
+        if (offerLetterDoc) {
+          const expiresAt = new Date(Date.now() + env.CSV_DOC_LINK_TTL_DAYS * 24 * 60 * 60 * 1000);
+          const code = await createShortLink(offerLetterDoc.id, expiresAt);
+          offerLetterUrl = `${apiBase}/d/${code}`;
+        }
 
         const row = pickColumns({
           adminId:                 admin.id,

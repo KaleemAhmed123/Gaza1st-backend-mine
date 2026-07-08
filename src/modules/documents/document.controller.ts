@@ -23,8 +23,8 @@ export const uploadDocumentHandler = asyncHandler(async (req, res) => {
     let targetStudentUserId = req.authUser!.id;
     if (input.studentUserId && input.studentUserId !== req.authUser!.id) {
       const isAuthorized = req.authUser!.roles.includes(RoleCode.master_admin) ||
-                           (req.authUser!.roles.includes(RoleCode.reviewer) && !offerDocumentTypes.has(input.documentType)) ||
-                           req.authUser!.roles.includes(RoleCode.regional_admin);
+        (req.authUser!.roles.includes(RoleCode.reviewer) && !offerDocumentTypes.has(input.documentType)) ||
+        req.authUser!.roles.includes(RoleCode.regional_admin);
       if (!isAuthorized) {
         throw new ApiError(403, "You do not have permission to upload documents on behalf of this student");
       }
@@ -163,6 +163,52 @@ export const csvSignedDownloadHandler = asyncHandler(async (req, res) => {
   }
 
   // Generate a fresh 1-hour R2 presigned URL — browser follows and downloads directly
+  const presignedUrl = await getSignedStorageUrl(
+    doc.storageKey,
+    doc.storageBucket,
+    3600,
+    doc.originalFilename
+  );
+
+  if (!presignedUrl) {
+    throw new ApiError(500, "Could not generate download URL");
+  }
+
+  res.redirect(302, presignedUrl);
+});
+
+/**
+ * GET /api/documents/short/:code
+ *
+ * No platform login required. Resolves a unique 6-character short link,
+ * fetches a fresh 1-hour R2 presigned URL, and redirects (302) to download.
+ */
+export const shortLinkDownloadHandler = asyncHandler(async (req, res) => {
+  const { code } = req.params;
+
+  const shortLink = await prisma.shortLink.findUnique({
+    where: { code },
+  });
+
+  if (!shortLink) {
+    throw new ApiError(404, "Short link not found");
+  }
+
+  if (shortLink.expiresAt < new Date()) {
+    // Clean up expired short links
+    await prisma.shortLink.delete({ where: { id: shortLink.id } }).catch(() => { });
+    throw new ApiError(410, "Short link has expired");
+  }
+
+  const doc = await prisma.document.findFirst({
+    where: { id: shortLink.docId, status: "active", deletedAt: null },
+    select: { storageKey: true, storageBucket: true, originalFilename: true }
+  });
+
+  if (!doc) {
+    throw new ApiError(404, "Document not found");
+  }
+
   const presignedUrl = await getSignedStorageUrl(
     doc.storageKey,
     doc.storageBucket,

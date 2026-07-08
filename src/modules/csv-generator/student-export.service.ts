@@ -1,6 +1,6 @@
 import { prisma } from "../../db/prisma";
 import { formatCsvRow } from "../../shared/csv";
-import { generateCsvDocToken } from "../documents/csv-doc-token";
+import { createShortLink } from "../documents/csv-doc-token";
 import { calculateOfferFinancialSummary, parseFinancialRules } from "../offers/offer-financial";
 import { STUDENT_COLUMNS, DATASET_COLUMNS } from "./csv-column-definitions";
 import type { CsvJob } from "@prisma/client";
@@ -194,8 +194,19 @@ export async function runStudentExport(
         const offerLetterDoc       = offer.documents.find((d) => d.documentType === "offer_letter");
         const scholarshipLetterDoc = offer.documents.find((d) => d.documentType === "scholarship_letter");
 
-        const offerLetterUrl       = offerLetterDoc       ? `${apiBase}/api/documents/${offerLetterDoc.id}/signed-download?token=${generateCsvDocToken(offerLetterDoc.id)}`             : "";
-        const scholarshipLetterUrl = scholarshipLetterDoc ? `${apiBase}/api/documents/${scholarshipLetterDoc.id}/signed-download?token=${generateCsvDocToken(scholarshipLetterDoc.id)}` : "";
+        let offerLetterUrl = "";
+        let scholarshipLetterUrl = "";
+
+        const expiresAt = new Date(Date.now() + env.CSV_DOC_LINK_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+        if (offerLetterDoc) {
+          const code = await createShortLink(offerLetterDoc.id, expiresAt);
+          offerLetterUrl = `${apiBase}/d/${code}`;
+        }
+        if (scholarshipLetterDoc) {
+          const code = await createShortLink(scholarshipLetterDoc.id, expiresAt);
+          scholarshipLetterUrl = `${apiBase}/d/${code}`;
+        }
 
         const row = pickColumns({
           ...studentBase,
