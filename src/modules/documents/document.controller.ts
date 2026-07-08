@@ -1,12 +1,15 @@
 import fs from "fs/promises";
 import { asyncHandler, sendSuccess } from "../../shared/http";
 import { uploadDocumentSchema } from "./document.validation";
+import { RoleCode } from "@prisma/client";
 import { getDownloadableDocument, saveDocument, deleteDocument } from "./document.service";
 import { verifyCsvDocToken } from "./csv-doc-token";
 import { prisma } from "../../db/prisma";
 import { ApiError } from "../../shared/http";
 import { getSignedStorageUrl, getObjectStreamFromStorage } from "../../shared/storage";
 import { pipeline } from "stream";
+
+import { offerDocumentTypes } from "./document.constants";
 
 export const uploadDocumentHandler = asyncHandler(async (req, res) => {
   if (!req.file) {
@@ -16,8 +19,21 @@ export const uploadDocumentHandler = asyncHandler(async (req, res) => {
 
   try {
     const input = uploadDocumentSchema.parse(req.body);
+
+    let targetStudentUserId = req.authUser!.id;
+    if (input.studentUserId && input.studentUserId !== req.authUser!.id) {
+      const isAuthorized = req.authUser!.roles.includes(RoleCode.master_admin) ||
+                           (req.authUser!.roles.includes(RoleCode.reviewer) && !offerDocumentTypes.has(input.documentType)) ||
+                           req.authUser!.roles.includes(RoleCode.regional_admin);
+      if (!isAuthorized) {
+        throw new ApiError(403, "You do not have permission to upload documents on behalf of this student");
+      }
+      targetStudentUserId = input.studentUserId;
+    }
+
     const document = await saveDocument({
       userId: req.authUser!.id,
+      studentUserId: targetStudentUserId,
       documentType: input.documentType,
       offerId: input.offerId,
       file: req.file

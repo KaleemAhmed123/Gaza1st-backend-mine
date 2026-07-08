@@ -473,6 +473,72 @@ export async function updateMyOffer(input: {
   return formatOffer(offer, financialRules);
 }
 
+export async function updateOfferAsAdmin(input: {
+  userId: string;
+  offerId: string;
+  data: OfferInput;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  const offer = await prisma.offer.findFirst({
+    where: { id: input.offerId, deletedAt: null },
+    include: offerInclude
+  });
+
+  if (!offer) {
+    throw new ApiError(404, "Offer not found");
+  }
+
+  if (!(await canReviewOffer(input.userId, offer.regionId, offer.id))) {
+    throw new ApiError(403, "You do not have permission to update this offer");
+  }
+
+  const { region, university } = await resolveOfferRegionAndUniversity(input.data);
+  const financialRules = await getOfferFinancialRules();
+  await validateOfferBusinessRules(input.data, region.name, financialRules);
+
+  const beforeData = offerSnapshot(offer);
+  const nextData = { regionId: region.id, universityId: university?.id, ...toOfferData(input.data) };
+  const afterData = offerSnapshot({ ...offer, ...nextData });
+  const fieldsChanged = changedFields(beforeData, afterData);
+  
+  if (fieldsChanged.length === 0) {
+    return formatOffer(offer, financialRules);
+  }
+
+  const updatedOffer = await prisma.$transaction(async (tx) => {
+    const res = await tx.offer.update({
+      where: { id: offer.id },
+      data: nextData,
+      include: offerInclude
+    });
+
+    await tx.offerRevision.create({
+      data: {
+        offerId: offer.id,
+        editedBy: input.userId,
+        beforeData,
+        afterData,
+        changedFields: fieldsChanged
+      }
+    });
+
+    return res;
+  });
+
+  await recordAuditLog({
+    actorUserId: input.userId,
+    action: "admin_offer_edited",
+    entityType: "offer",
+    entityId: offer.id,
+    metadata: { changedFields: fieldsChanged },
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent
+  });
+
+  return formatOffer(updatedOffer, financialRules);
+}
+
 export async function removeMyOffer(input: {
   userId: string;
   offerId: string;

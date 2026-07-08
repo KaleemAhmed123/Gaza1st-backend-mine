@@ -19,12 +19,14 @@ import { uploadToStorage, getSignedStorageUrl } from "../../shared/storage";
 
 export async function saveDocument(input: {
   userId: string;
+  studentUserId?: string;
   documentType: DocumentType;
   offerId?: string;
   file: Express.Multer.File;
 }) {
+  const targetStudentUserId = input.studentUserId ?? input.userId;
   const studentProfile = await prisma.studentProfile.findUnique({
-    where: { userId: input.userId }
+    where: { userId: targetStudentUserId }
   });
 
   if (!studentProfile || studentProfile.deletedAt) {
@@ -49,7 +51,7 @@ export async function saveDocument(input: {
     offer = await prisma.offer.findFirst({
       where: {
         id: input.offerId,
-        studentUserId: input.userId,
+        studentUserId: targetStudentUserId,
         deletedAt: null
       },
       select: { id: true }
@@ -63,7 +65,7 @@ export async function saveDocument(input: {
   return prisma.$transaction(async (tx) => {
     await tx.document.updateMany({
       where: {
-        ownerUserId: input.userId,
+        ownerUserId: targetStudentUserId,
         studentProfileId: studentProfile.id,
         offerId: offer?.id,
         documentType: input.documentType,
@@ -84,7 +86,7 @@ export async function saveDocument(input: {
 
     const document = await tx.document.create({
       data: {
-        ownerUserId: input.userId,
+        ownerUserId: targetStudentUserId,
         studentProfileId: studentProfile.id,
         offerId: offer?.id,
         documentType: input.documentType,
@@ -251,7 +253,37 @@ export async function deleteDocument(documentId: string, requestingUserId: strin
     throw new ApiError(404, "Document not found");
   }
 
-  if (document.ownerUserId !== requestingUserId) {
+  let hasPermission = document.ownerUserId === requestingUserId;
+  if (!hasPermission) {
+    const requester = await prisma.user.findFirst({
+      where: { id: requestingUserId, deletedAt: null, accountStatus: "active" },
+      include: { regionalAdminProfile: true }
+    });
+    if (requester?.roles.includes(RoleCode.master_admin)) {
+      hasPermission = true;
+    } else if (requester?.roles.includes(RoleCode.reviewer) && !offerDocumentTypes.has(document.documentType)) {
+      hasPermission = true;
+    } else if (
+      requester?.roles.includes(RoleCode.regional_admin) &&
+      requester.regionalAdminProfile?.status === "active" &&
+      !requester.regionalAdminProfile.deletedAt
+    ) {
+      const regionId = requester.regionalAdminProfile.regionId;
+      if (document.offerId) {
+        const offer = await prisma.offer.findFirst({
+          where: { id: document.offerId, regionId, deletedAt: null }
+        });
+        if (offer) hasPermission = true;
+      } else {
+        const hasOfferInRegion = await prisma.offer.findFirst({
+          where: { studentUserId: document.ownerUserId, regionId, deletedAt: null }
+        });
+        if (hasOfferInRegion) hasPermission = true;
+      }
+    }
+  }
+
+  if (!hasPermission) {
     throw new ApiError(403, "You do not have permission to delete this document");
   }
 

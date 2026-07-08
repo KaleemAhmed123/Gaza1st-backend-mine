@@ -7,9 +7,10 @@ import {
   listAdminOffers,
   reviewOffer,
   assignMentorToOffer,
-  removeOfferAsAdmin
+  removeOfferAsAdmin,
+  updateOfferAsAdmin
 } from "./offer.service";
-import { listAdminOffersQuerySchema, reviewOfferSchema, assignOfferMentorSchema } from "./offer.validation";
+import { listAdminOffersQuerySchema, reviewOfferSchema, assignOfferMentorSchema, offerInputSchema } from "./offer.validation";
 
 export const listAdminOffersHandler = asyncHandler(async (req, res) => {
   const query = listAdminOffersQuerySchema.parse(req.query);
@@ -73,4 +74,16 @@ export const deleteAdminOfferHandler = asyncHandler(async (req, res) => {
     userAgent: req.get("user-agent")
   });
   sendSuccess(res, { success: true });
+});
+
+export const updateAdminOfferHandler = asyncHandler(async (req, res) => {
+  const input = offerInputSchema.parse(req.body);
+  const offer = await updateOfferAsAdmin({
+    userId: req.authUser!.id,
+    offerId: req.params.id,
+    data: input,
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent")
+  });
+  sendSuccess(res, { offer });
 });

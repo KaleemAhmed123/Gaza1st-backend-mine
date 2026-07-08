@@ -8,5 +8,6 @@ export const uploadDocumentSchema = z.object({
     (documentType) => allowedDocumentTypes.includes(documentType),
     "Unsupported document type"
   ),
-  offerId: objectIdSchema.optional()
+  offerId: objectIdSchema.optional(),
+  studentUserId: objectIdSchema.optional()
 });
