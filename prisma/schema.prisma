@@ -625,3 +625,12 @@ model CsvJob {
   @@index([expiresAt])
   @@index([createdAt])
 }
+
+model ShortLink {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  code      String   @unique
+  docId     String   @db.ObjectId
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
