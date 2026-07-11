@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import * as appConfigService from "./app-config.service";
 
 // Public configs allowed to be fetched without auth
-const PUBLIC_CONFIG_KEYS = ["homepage_faqs", "homepage_metrics", "require_admin_approval_tags", "announcement_limits", "enable_student_chat"];
+const PUBLIC_CONFIG_KEYS = ["homepage_faqs", "homepage_metrics", "require_admin_approval_tags", "announcement_limits", "enable_student_chat", "homepage_timeline"];
 
 export async function getPublicConfigHandler(req: Request, res: Response) {
   try {
@@ -32,9 +32,6 @@ export async function getConfigHandler(req: Request, res: Response) {
   try {
     const { key } = req.params;
     const data = await appConfigService.getAppConfig(key);
-    if (data === null) {
-      return res.status(404).json({ success: false, message: "Config not found" });
-    }
     res.json({ success: true, data });
   } catch (err) {
     console.error(err);
