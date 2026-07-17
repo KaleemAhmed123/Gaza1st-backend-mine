@@ -35,7 +35,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   }
 }
 
-export function requireRole(allowedRoles: string[]) {
+export function requireRole(allowedRoles: RoleCodeType[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.authUser) {
       next(new ApiError(401, "Authentication required"));
@@ -43,39 +43,6 @@ export function requireRole(allowedRoles: string[]) {
     }
 
     const hasRole = req.authUser.roles.some((role) => allowedRoles.includes(role));
-    if (!hasRole) {
-      next(new ApiError(403, "You do not have permission to access this resource"));
-      return;
-    }
-
-    next();
-  };
-}
-
-export function requireActiveDbRole(roleCode: RoleCodeType) {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    if (!req.authUser) {
-      next(new ApiError(401, "Authentication required"));
-      return;
-    }
-
-    if (!req.authUser.roles.includes(roleCode)) {
-      next(new ApiError(403, "You do not have permission to access this resource"));
-      return;
-    }
-
-    next();
-  };
-}
-
-export function requireAnyActiveDbRole(roleCodes: RoleCodeType[]) {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    if (!req.authUser) {
-      next(new ApiError(401, "Authentication required"));
-      return;
-    }
-
-    const hasRole = req.authUser.roles.some((role) => roleCodes.includes(role));
     if (!hasRole) {
       next(new ApiError(403, "You do not have permission to access this resource"));
       return;

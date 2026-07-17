@@ -49,38 +49,6 @@ export async function uploadToStorage(
   return { key, bucket: bucketName };
 }
 
-export async function uploadFileToStorage(
-  filePath: string,
-  filename: string,
-  mimetype: string,
-  folder: string = "uploads"
-): Promise<{ key: string; bucket: string }> {
-  const bucketName = env.R2_BUCKET_NAME || "gaza40-documents";
-  const uniqueId = randomUUID();
-  const extension = filename.split(".").pop();
-  const key = `${folder}/${uniqueId}.${extension}`;
-
-  if (!s3Client) {
-    const fs = await import("fs/promises");
-    const path = await import("path");
-    const localPath = path.join(process.cwd(), key);
-    await fs.mkdir(path.dirname(localPath), { recursive: true });
-    await fs.copyFile(filePath, localPath);
-    return { key, bucket: "local_private" };
-  }
-
-  const fs = await import("fs");
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-    Body: fs.createReadStream(filePath),
-    ContentType: mimetype,
-  });
-
-  await s3Client.send(command);
-  return { key, bucket: bucketName };
-}
-
 export async function getSignedStorageUrl(
   key: string,
   bucket?: string,

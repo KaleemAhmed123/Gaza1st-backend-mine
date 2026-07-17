@@ -859,3 +859,45 @@ Fixes and small feature completions across backend + frontend (frontend repo:
 - Dashboard total funding gap already sums each student's smallest per-year gap across approved offers.
 - Profile `changes_requested` already routes the student to a "Modify Profile Questionnaire" flow.
 - Regional CSV export is already region-scoped.
+
+## 2026-07-17 - Ponytail Audit Cleanup (duplication removal, no behavior change)
+
+Follow-up to `/ponytail-audit`. Both findings were pure duplication — same result reachable through
+a shorter path. No routes, payloads, or response shapes changed; RBAC semantics verified identical
+before/after via live requests (see Verification below).
+
+### Files Updated
+
+- `src/shared/storage.ts`
+  - Deleted `uploadFileToStorage` (file-path upload variant). Its local-fallback + R2 upload logic was
+    a near-duplicate of `uploadToStorage` (buffer variant), differing only in how the body was read.
+    `uploadToStorage` is now the only upload path into storage.
+- `src/modules/csv-generator/csv-storage.service.ts`
+  - Deleted `uploadCsvFile` (its only job was forwarding to the now-deleted `uploadFileToStorage`).
+- `src/modules/csv-generator/csv-job.service.ts`
+  - `processCsvJob`: reads the finished export file into a `Buffer` (`fs.readFile`) and calls the
+    existing `uploadCsv`, instead of calling the separate file-path upload function.
+- `src/middleware/auth.middleware.ts`
+  - Deleted `requireActiveDbRole` and `requireAnyActiveDbRole` — both ran byte-identical logic to
+    `requireRole` (check `req.authUser.roles` against an allow-list), just with narrower parameter
+    types (`RoleCodeType` / `RoleCodeType[]` vs `string[]`). `requireRole`'s parameter type tightened
+    to `RoleCodeType[]`; plain string-literal call sites (`["student"]`, `["master_admin", ...]`)
+    still typecheck since Prisma's `RoleCode` is a string-literal union, not a runtime enum.
+  - `requireActiveMentor` was left alone — it's a genuine shorthand (9 call sites) with a mentor-
+    specific error message, not a duplicate.
+- 4 route files updated to call `requireRole([...])` instead of the deleted functions:
+  `admin-audit-log.routes.ts`, `config.routes.ts`, `admin-student-profile.routes.ts`,
+  `announcement.routes.ts`.
+
+### Verification
+
+- `pnpm lint` (tsc --noEmit): clean.
+- Live smoke test against a running server with real seeded accounts:
+  - `master_admin` → 200 on all 4 routes whose middleware changed (`/api/admin/audit-logs`,
+    `/api/admin/config/regions`, `/api/admin/student-profiles`, `/api/admin/announcements`).
+  - `regional_admin` → 403 on the two master_admin-only routes, 200 on the multi-role route
+    (`/api/admin/announcements`) — confirms the role gate still restricts, not just permits.
+  - No cookie → 401.
+  - Full CSV export round-trip (`students` dataset): job created → completed → real R2 signed URL
+    generated → file downloaded back and content verified — exercises the entire rewritten upload path
+    end-to-end against production storage, not a mock.

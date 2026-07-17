@@ -4,7 +4,7 @@ import { prisma } from "../../db/prisma";
 import { ApiError } from "../../shared/http";
 import { recordAuditLog } from "../../shared/audit";
 import { RoleCode, CsvJobStatus, type CsvJob } from "@prisma/client";
-import { uploadCsvFile, getCsvDownloadUrl, deleteCsvFromStorage } from "./csv-storage.service";
+import { uploadCsv, getCsvDownloadUrl, deleteCsvFromStorage } from "./csv-storage.service";
 import { runStudentExport } from "./student-export.service";
 import { runMentorExport } from "./mentor-export.service";
 import { runRegionalAdminExport } from "./regional-admin-export.service";
@@ -179,10 +179,11 @@ export async function runCsvJob(jobId: string): Promise<void> {
       return;
     }
 
-    const { key, bucket } = await uploadCsvFile(result.filePath, jobId, job.dataset);
-    
-    // Clean up temporary file
     const fs = await import("fs/promises");
+    const csvBuffer = await fs.readFile(result.filePath);
+    const { key, bucket } = await uploadCsv(csvBuffer, jobId, job.dataset);
+
+    // Clean up temporary file
     await fs.unlink(result.filePath).catch(() => {});
     
     const expiresAt = new Date(Date.now() + env.CSV_SIGNED_URL_TTL_DAYS * 24 * 60 * 60 * 1000);

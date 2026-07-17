@@ -1,5 +1,5 @@
 import { env } from "../../config/env";
-import { uploadToStorage, getSignedStorageUrl, deleteFromStorage, uploadFileToStorage } from "../../shared/storage";
+import { uploadToStorage, getSignedStorageUrl, deleteFromStorage } from "../../shared/storage";
 import type { CsvDataset } from "@prisma/client";
 
 export function buildCsvStorageKey(jobId: string, dataset: CsvDataset): string {
@@ -21,19 +21,6 @@ export async function uploadCsv(
   const key    = buildCsvStorageKey(jobId, dataset);
   const folder = key.substring(0, key.lastIndexOf("/"));
   return uploadToStorage(buffer, `${jobId}.csv`, "text/csv; charset=utf-8", folder);
-}
-
-/**
- * Upload the finished CSV file to R2.
- */
-export async function uploadCsvFile(
-  filePath: string,
-  jobId: string,
-  dataset: CsvDataset
-): Promise<{ key: string; bucket: string }> {
-  const key    = buildCsvStorageKey(jobId, dataset);
-  const folder = key.substring(0, key.lastIndexOf("/"));
-  return uploadFileToStorage(filePath, `${jobId}.csv`, "text/csv; charset=utf-8", folder);
 }
 
 /**

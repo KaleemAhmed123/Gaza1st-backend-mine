@@ -1,6 +1,6 @@
 import { RoleCode } from "@prisma/client";
 import { Router } from "express";
-import { requireActiveDbRole, requireAuth } from "../../middleware/auth.middleware";
+import { requireRole, requireAuth } from "../../middleware/auth.middleware";
 import {
   createConfigOptionHandler,
   createRegionHandler,
@@ -35,7 +35,7 @@ configRouter.get("/roles", (req, res) => {
   res.json({ roles: Object.values(RoleCode) });
 });
 
-adminConfigRouter.use(requireAuth, requireActiveDbRole(RoleCode.master_admin));
+adminConfigRouter.use(requireAuth, requireRole([RoleCode.master_admin]));
 adminConfigRouter.get("/regions", listAllRegionsAdminHandler);
 adminConfigRouter.get("/universities", listAllUniversitiesAdminHandler);
 adminConfigRouter.post("/options", createConfigOptionHandler);
