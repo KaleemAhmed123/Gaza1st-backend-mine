@@ -21,6 +21,7 @@ if (env.SENTRY_DSN) {
 
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
 import { requireCsrfHeader } from "./middleware/csrf.middleware";
+import { requireVerified } from "./middleware/auth.middleware";
 import { apiRateLimiter, authRateLimiter, uploadRateLimiter } from "./middleware/rate-limit.middleware";
 import { adminAuditLogRouter } from "./modules/admin/audit-logs/admin-audit-log.routes";
 import { adminRegionalAdminRouter } from "./modules/admin/regional-admins/admin-regional-admin.routes";
@@ -71,6 +72,9 @@ app.use(requireCsrfHeader);
 
 app.use("/health", healthRouter);
 app.use("/api/auth", authRateLimiter, authRouter);
+// Self-signup users (students/mentors) must verify their email before using any API below.
+// Mounted after /api/auth so /me, /refresh, /verify-email and /send-verification-email stay reachable.
+app.use("/api", requireVerified);
 app.use("/api/documents", uploadRateLimiter, documentRouter);
 app.use("/api", apiRateLimiter);
 app.use("/api/config", configRouter);
