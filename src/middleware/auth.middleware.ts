@@ -35,6 +35,43 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   }
 }
 
+const selfSignupRoles: RoleCodeType[] = [RoleCode.student, RoleCode.mentor];
+
+// Gates the app for self-signup users (students/mentors) until their email is verified.
+// Admin-created roles are exempt. No/invalid token => pass through so requireAuth handles 401 downstream.
+export async function requireVerified(req: Request, _res: Response, next: NextFunction) {
+  const token = req.cookies?.accessToken;
+  if (!token) {
+    next();
+    return;
+  }
+
+  let authUser: AuthUser;
+  try {
+    authUser = verifyAccessToken(token);
+  } catch {
+    next();
+    return;
+  }
+
+  if (!authUser.roles.some((role) => selfSignupRoles.includes(role))) {
+    next();
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: authUser.id },
+    select: { emailVerifiedAt: true }
+  });
+
+  if (user && !user.emailVerifiedAt) {
+    next(new ApiError(403, "Please verify your email address to continue."));
+    return;
+  }
+
+  next();
+}
+
 export function requireRole(allowedRoles: RoleCodeType[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.authUser) {
