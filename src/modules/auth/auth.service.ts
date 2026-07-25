@@ -244,6 +244,9 @@ export async function registerStudent(input: RegisterStudentInput) {
     html: emailTemplates.welcome(user.fullName, 'student')
   });
 
+  // Send the real email-verification link (screen at /verify-email tells the user to click it).
+  void sendVerificationEmail(user.id, {});
+
   return buildAuthUser(user.id);
 }
 
@@ -280,6 +283,9 @@ export async function registerVolunteer(input: RegisterVolunteerInput) {
     text: `Hello ${user.fullName}, welcome to Gaza40!`,
     html: emailTemplates.welcome(user.fullName, 'mentor')
   });
+
+  // Send the real email-verification link (screen at /verify-email tells the user to click it).
+  void sendVerificationEmail(user.id, {});
 
   // Notify Master Admins about the new volunteer signup
   prisma.user.findMany({
