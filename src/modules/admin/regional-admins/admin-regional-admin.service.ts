@@ -33,6 +33,7 @@ export async function createRegionalAdmin(input: CreateRegionalAdminInput, creat
         fullName: input.fullName,
         accountStatus: AccountStatus.active,
         roles: [RoleCode.reviewer],
+        emailVerifiedAt: new Date(), // admin-created accounts are trusted, no email verification needed
         deletedAt: null
       }
     });
@@ -83,6 +84,7 @@ export async function createRegionalAdmin(input: CreateRegionalAdminInput, creat
         fullName: input.fullName,
         accountStatus: AccountStatus.active,
         roles: [RoleCode.regional_admin],
+        emailVerifiedAt: new Date(), // admin-created accounts are trusted, no email verification needed
         deletedAt: null
       }
     });
