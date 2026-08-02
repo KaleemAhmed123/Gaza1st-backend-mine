@@ -103,7 +103,7 @@ export async function runStudentExport(
             tuitionFeePerYear: true,
             hasScholarship: true,
             scholarshipName: true,
-            scholarshipAmountPerYear: true,
+            scholarshipAmount: true,
             scholarshipCoversLivingCost: true,
             privateFundingAmount: true,
             privateFundingSource: true,
@@ -156,7 +156,7 @@ export async function runStudentExport(
       const offers = student.studentOffers;
 
       if (offers.length === 0) {
-        const row = pickColumns({ ...studentBase, country: "", university: "", offerId: "", courseName: "", courseField: "", courseLevel: "", offerType: "", durationYears: "", programmeStartDate: "", tuitionFeePerYear: "", hasScholarship: "", scholarshipName: "", scholarshipAmountPerYear: "", scholarshipCoversLivingCost: "", privateFundingAmount: "", privateFundingSource: "", financialGap: "", financialGapExists: "", offerStatus: "", approvedOffer: "", activeOffer: "", scholarshipExists: "", offerLetterUrl: "", scholarshipLetterUrl: "", offerCreatedAt: "" }, job.columns);
+        const row = pickColumns({ ...studentBase, country: "", university: "", offerId: "", courseName: "", courseField: "", courseLevel: "", offerType: "", durationYears: "", programmeStartDate: "", tuitionFeePerYear: "", hasScholarship: "", scholarshipName: "", scholarshipAmount: "", scholarshipCoversLivingCost: "", privateFundingAmount: "", privateFundingSource: "", financialGap: "", financialGapExists: "", offerStatus: "", approvedOffer: "", activeOffer: "", scholarshipExists: "", offerLetterUrl: "", scholarshipLetterUrl: "", offerCreatedAt: "" }, job.columns);
         chunk += formatCsvRow(row, headers) + "\n";
         rowCount++;
         continue;
@@ -173,7 +173,7 @@ export async function runStudentExport(
               courseLevel:                offer.courseLevel,
               durationYears:              offer.durationYears,
               tuitionFeePerYear:          offer.tuitionFeePerYear,
-              scholarshipAmountPerYear:   offer.scholarshipAmountPerYear ?? undefined,
+              scholarshipAmount:   offer.scholarshipAmount ?? undefined,
               scholarshipCoversLivingCost:offer.scholarshipCoversLivingCost,
               privateFundingAmount:       offer.privateFundingAmount,
               privateFundingInterval:      (offer as any).privateFundingInterval,
@@ -222,7 +222,7 @@ export async function runStudentExport(
           tuitionFeePerYear:          offer.tuitionFeePerYear,
           hasScholarship:             offer.hasScholarship,
           scholarshipName:            offer.scholarshipName ?? "",
-          scholarshipAmountPerYear:   offer.scholarshipAmountPerYear ?? "",
+          scholarshipAmount:   offer.scholarshipAmount ?? "",
           scholarshipCoversLivingCost:offer.scholarshipCoversLivingCost,
           privateFundingAmount:       offer.privateFundingAmount,
           privateFundingSource:       offer.privateFundingSource ?? "",

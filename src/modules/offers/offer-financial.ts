@@ -14,7 +14,8 @@ export type OfferFinancialInput = {
   courseLevel: string;
   durationYears: number;
   tuitionFeePerYear: number;
-  scholarshipAmountPerYear?: number | null;
+  scholarshipAmount?: number | null;
+  scholarshipInterval?: string | null;
   scholarshipCoversLivingCost: boolean;
   privateFundingAmount: number;
   privateFundingInterval?: string | null;
@@ -61,11 +62,15 @@ export function calculateOfferFinancialSummary(
   rules: FinancialRules,
   input: OfferFinancialInput
 ): OfferFinancialSummary {
-  const scholarshipAmount = input.scholarshipAmountPerYear ?? 0;
+  const scholarshipRaw = input.scholarshipAmount ?? 0;
+  const scholarshipAnnual = input.scholarshipInterval === "one_time"
+    ? (scholarshipRaw / Math.max(1, input.durationYears))
+    : scholarshipRaw;
+  
   const privateFundingAnnual = input.privateFundingInterval === "one_time"
     ? (input.privateFundingAmount / Math.max(1, input.durationYears))
     : input.privateFundingAmount;
-  const availableFundsForYear = scholarshipAmount + privateFundingAnnual;
+  const availableFundsForYear = scholarshipAnnual + privateFundingAnnual;
   const tuitionFeePerYearGap = Math.max(input.tuitionFeePerYear - availableFundsForYear, 0);
   const tuitionFeePerYearCovered = tuitionFeePerYearGap === 0;
   const completeYears = Math.floor(input.durationYears);
