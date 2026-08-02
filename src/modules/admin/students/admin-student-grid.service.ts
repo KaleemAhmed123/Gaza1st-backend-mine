@@ -373,7 +373,7 @@ export async function streamAdminStudentsCsv(input: {
             courseLevel: true,
             reviewStatus: true,
             tuitionFeePerYear: true,
-            scholarshipAmountPerYear: true,
+            scholarshipAmount: true,
             privateFundingAmount: true,
             createdAt: true,
             updatedAt: true,
@@ -422,7 +422,7 @@ export async function streamAdminStudentsCsv(input: {
       };
 
       if (student.studentOffers.length === 0) {
-        rows.push({ ...studentBase, offerId: "", universityName: "No offers", region: "", courseName: "", courseField: "", courseLevel: "", offerStatus: "", tuitionFeePerYear: "", scholarshipAmountPerYear: "", privateFundingAmount: "", offerLetterUrl: "", scholarshipLetterUrl: "", offerCreatedAt: "", offerUpdatedAt: "" });
+        rows.push({ ...studentBase, offerId: "", universityName: "No offers", region: "", courseName: "", courseField: "", courseLevel: "", offerStatus: "", tuitionFeePerYear: "", scholarshipAmount: "", privateFundingAmount: "", offerLetterUrl: "", scholarshipLetterUrl: "", offerCreatedAt: "", offerUpdatedAt: "" });
       } else {
         for (const offer of student.studentOffers) {
           const offerLetterDoc = offer.documents.find((d: any) => d.documentType === "offer_letter");
@@ -438,7 +438,7 @@ export async function streamAdminStudentsCsv(input: {
             courseLevel: offer.courseLevel,
             offerStatus: offer.reviewStatus,
             tuitionFeePerYear: offer.tuitionFeePerYear,
-            scholarshipAmountPerYear: offer.scholarshipAmountPerYear ?? "",
+            scholarshipAmount: offer.scholarshipAmount ?? "",
             privateFundingAmount: offer.privateFundingAmount,
             offerLetterUrl: offerLetterDoc
               ? `${process.env.API_BASE_URL ?? ""}/api/documents/${offerLetterDoc.id}/download`

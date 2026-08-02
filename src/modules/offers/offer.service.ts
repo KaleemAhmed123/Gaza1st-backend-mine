@@ -84,7 +84,7 @@ function snapshotValue(value: unknown): Prisma.JsonValue {
     typeof value === "number" ||
     typeof value === "boolean"
   ) {
-    return value;
+    return value as Prisma.JsonValue;
   }
 
   if (typeof (value as { toString?: unknown }).toString === "function") {
@@ -110,7 +110,8 @@ function offerSnapshot(offer: Record<string, unknown>): Prisma.JsonObject {
     courseFeeSourceUrl: snapshotValue(offer.courseFeeSourceUrl),
     hasScholarship: snapshotValue(offer.hasScholarship),
     scholarshipName: snapshotValue(offer.scholarshipName),
-    scholarshipAmountPerYear: snapshotValue(offer.scholarshipAmountPerYear),
+    scholarshipAmount: snapshotValue(offer.scholarshipAmount),
+    scholarshipInterval: snapshotValue(offer.scholarshipInterval),
     scholarshipCoversLivingCost: snapshotValue(offer.scholarshipCoversLivingCost),
     privateFundingAmount: snapshotValue(offer.privateFundingAmount),
     privateFundingSource: snapshotValue(offer.privateFundingSource),
@@ -179,9 +180,10 @@ async function formatOffer(
     courseLevel: offer.courseLevel,
     durationYears: decimalToNumber(offer.durationYears),
     tuitionFeePerYear: decimalToNumber(offer.tuitionFeePerYear),
-    scholarshipAmountPerYear: offer.scholarshipAmountPerYear
-      ? decimalToNumber(offer.scholarshipAmountPerYear)
+    scholarshipAmount: offer.scholarshipAmount
+      ? decimalToNumber(offer.scholarshipAmount)
       : undefined,
+    scholarshipInterval: offer.scholarshipInterval,
     scholarshipCoversLivingCost: offer.scholarshipCoversLivingCost,
     privateFundingAmount: decimalToNumber(offer.privateFundingAmount),
     privateFundingInterval: offer.privateFundingInterval,
@@ -207,7 +209,8 @@ function toOfferData(input: OfferInput) {
     courseFeeSourceUrl: input.courseFeeSourceUrl,
     hasScholarship: input.hasScholarship,
     scholarshipName: input.scholarshipName,
-    scholarshipAmountPerYear: input.scholarshipAmountPerYear,
+    scholarshipAmount: input.scholarshipAmount,
+    scholarshipInterval: input.scholarshipInterval,
     scholarshipCoversLivingCost: input.scholarshipCoversLivingCost,
     privateFundingAmount: input.privateFundingAmount,
     privateFundingSource: input.privateFundingSource,
@@ -266,7 +269,7 @@ async function validateOfferBusinessRules(
     throw new ApiError(400, "Conditions are required for conditional offers");
   }
 
-  if (input.hasScholarship && (!input.scholarshipName || input.scholarshipAmountPerYear === undefined)) {
+  if (input.hasScholarship && (!input.scholarshipName || input.scholarshipAmount === undefined)) {
     throw new ApiError(400, "Scholarship name and amount are required when scholarship is selected");
   }
 
@@ -274,7 +277,7 @@ async function validateOfferBusinessRules(
     if (input.scholarshipName && input.scholarshipName.trim() !== "") {
       throw new ApiError(400, "Scholarship name cannot be set when hasScholarship is false");
     }
-    if (input.scholarshipAmountPerYear && input.scholarshipAmountPerYear > 0) {
+    if (input.scholarshipAmount && input.scholarshipAmount > 0) {
       throw new ApiError(400, "Scholarship amount cannot be set when hasScholarship is false");
     }
   }
@@ -1062,11 +1065,13 @@ export async function exportAdminOffersCsv(input: {
     tuitionFeePerYear: decimalToNumber(offer.tuitionFeePerYear),
     hasScholarship: offer.hasScholarship,
     scholarshipName: offer.scholarshipName,
-    scholarshipAmountPerYear: offer.scholarshipAmountPerYear
-      ? decimalToNumber(offer.scholarshipAmountPerYear)
+    scholarshipAmount: offer.scholarshipAmount
+      ? decimalToNumber(offer.scholarshipAmount)
       : undefined,
+    scholarshipInterval: offer.scholarshipInterval,
     scholarshipCoversLivingCost: offer.scholarshipCoversLivingCost,
     privateFundingAmount: decimalToNumber(offer.privateFundingAmount),
+    privateFundingInterval: offer.privateFundingInterval,
     fundingType: getFundingType(offer),
     currency: financialSummaries[index].financialSummary.currency,
     completeYears: financialSummaries[index].financialSummary.completeYears,

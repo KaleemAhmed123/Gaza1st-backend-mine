@@ -301,7 +301,8 @@ model Offer {
   courseFeeSourceUrl          String?
   hasScholarship              Boolean           @default(false)
   scholarshipName             String?
-  scholarshipAmountPerYear    Float?
+  scholarshipAmount           Float?            @map("scholarshipAmountPerYear")
+  scholarshipInterval         String            @default("annual")
   scholarshipCoversLivingCost Boolean           @default(false)
   privateFundingAmount        Float             @default(0)
   privateFundingSource        String?

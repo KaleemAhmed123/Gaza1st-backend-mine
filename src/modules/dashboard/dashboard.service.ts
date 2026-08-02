@@ -310,7 +310,7 @@ export async function getAdminDashboard(userId: string) {
         courseLevel: true,
         durationYears: true,
         tuitionFeePerYear: true,
-        scholarshipAmountPerYear: true,
+        scholarshipAmount: true,
         scholarshipCoversLivingCost: true,
         privateFundingAmount: true,
         privateFundingInterval: true,
@@ -348,8 +348,8 @@ export async function getAdminDashboard(userId: string) {
             courseLevel: offer.courseLevel,
             durationYears: decimalToNumber(offer.durationYears),
             tuitionFeePerYear: decimalToNumber(offer.tuitionFeePerYear),
-            scholarshipAmountPerYear: offer.scholarshipAmountPerYear
-              ? decimalToNumber(offer.scholarshipAmountPerYear)
+            scholarshipAmount: offer.scholarshipAmount
+              ? decimalToNumber(offer.scholarshipAmount)
               : undefined,
             scholarshipCoversLivingCost: offer.scholarshipCoversLivingCost,
             privateFundingAmount: decimalToNumber(offer.privateFundingAmount),
@@ -511,7 +511,7 @@ export async function getMentorDashboard(userId: string) {
             courseLevel: true,
             durationYears: true,
             tuitionFeePerYear: true,
-            scholarshipAmountPerYear: true,
+            scholarshipAmount: true,
             scholarshipCoversLivingCost: true,
             privateFundingAmount: true,
             privateFundingInterval: true,
@@ -543,8 +543,8 @@ export async function getMentorDashboard(userId: string) {
               courseLevel: offer.courseLevel,
               durationYears: decimalToNumber(offer.durationYears),
               tuitionFeePerYear: decimalToNumber(offer.tuitionFeePerYear),
-              scholarshipAmountPerYear: offer.scholarshipAmountPerYear
-                ? decimalToNumber(offer.scholarshipAmountPerYear)
+              scholarshipAmount: offer.scholarshipAmount
+                ? decimalToNumber(offer.scholarshipAmount)
                 : undefined,
               scholarshipCoversLivingCost: offer.scholarshipCoversLivingCost,
               privateFundingAmount: decimalToNumber(offer.privateFundingAmount),
