@@ -15,21 +15,27 @@
 # 5. Run `docker compose up -d --build` from the common folder!
 # ==============================================================================
 
-version: '3.8'
-
 services:
   backend:
-    build: 
+    build:
       context: ./Gaza40-Student-Portal
       dockerfile: Dockerfile
     container_name: gaza40-backend
     restart: always
     env_file:
       - ./Gaza40-Student-Portal/.env
+    environment:
+      # Keep V8 heap under the 1g memory limit below (else OOM-kill mid-GC)
+      - NODE_OPTIONS=--max-old-space-size=768
     ports:
       - "8000:8000" # Change 8000 to your backend port if different
     networks:
       - gaza40_network
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
 
   frontend:
     build:
@@ -41,13 +47,20 @@ services:
       - ./gaza40plus-frontend/.env
     environment:
       # This points to the internal Docker network name 'backend'
-      - BACKEND_API_URL=http://backend:8000 
+      - BACKEND_API_URL=http://backend:8000
+      # Keep V8 heap under the 1g memory limit below (else OOM-kill mid-GC)
+      - NODE_OPTIONS=--max-old-space-size=768
     ports:
       - "3000:3000"
     networks:
       - gaza40_network
     depends_on:
       - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
 
 networks:
   gaza40_network:
