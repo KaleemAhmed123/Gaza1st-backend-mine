@@ -12,9 +12,7 @@ const regionalAdminCountry = (process.env.DEV_REGIONAL_ADMIN_COUNTRY || "UK").tr
 const regionalAdminName = `Development ${regionalAdminCountry} Regional Admin`;
 
 async function main() {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Refusing to seed development regional admin while NODE_ENV=production.");
-  }
+  // Allowed seeding in production by admin request
 
   const regions = await prisma.region.findMany({
     where: { isActive: true }

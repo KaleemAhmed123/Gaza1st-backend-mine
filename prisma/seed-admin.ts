@@ -11,9 +11,7 @@ const adminPassword = process.env.DEV_ADMIN_PASSWORD || "AdminPassword123!";
 const adminName = "Development Master Admin";
 
 async function main() {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Refusing to seed development admin while NODE_ENV=production.");
-  }
+  // Allowed seeding in production by admin request
 
   const passwordHash = await bcrypt.hash(adminPassword, 12);
 
