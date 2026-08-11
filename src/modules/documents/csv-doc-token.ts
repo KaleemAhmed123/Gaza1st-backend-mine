@@ -16,10 +16,8 @@
 import crypto from "crypto";
 import { env } from "../../config/env";
 
-// Derives a 32-byte key and a 16-byte IV from the JWT_ACCESS_SECRET
-const hash = crypto.createHash("sha256").update(env.JWT_ACCESS_SECRET).digest();
-const KEY = hash; // 32 bytes
-const IV = hash.subarray(0, 16); // 16 bytes
+// Derives a 32-byte key from the JWT_ACCESS_SECRET
+const KEY = crypto.createHash("sha256").update(env.JWT_ACCESS_SECRET).digest();
 
 /**
  * Sign/encrypt a token for a specific document ID.
@@ -40,13 +38,16 @@ export function generateCsvDocToken(docId: string): string {
   // Combine into a 16-byte buffer
   const plain = Buffer.concat([docIdBuf, expiresAtBuf]);
 
+  // Generate a random 16-byte IV per token
+  const IV = crypto.randomBytes(16);
+
   // Encrypt with AES-256-CBC (no padding since input is exactly 16 bytes)
   const cipher = crypto.createCipheriv("aes-256-cbc", KEY, IV);
   cipher.setAutoPadding(false);
   const encrypted = Buffer.concat([cipher.update(plain), cipher.final()]);
 
-  // Convert to base64url (22 characters)
-  return encrypted.toString("base64url");
+  // Convert to base64url (43 characters)
+  return Buffer.concat([IV, encrypted]).toString("base64url");
 }
 
 /**
@@ -55,10 +56,13 @@ export function generateCsvDocToken(docId: string): string {
  */
 export function verifyCsvDocToken(token: string, expectedDocId: string): void {
   try {
-    const encrypted = Buffer.from(token, "base64url");
-    if (encrypted.length !== 16) {
+    const tokenBuf = Buffer.from(token, "base64url");
+    if (tokenBuf.length !== 32) {
       throw new Error("Invalid token length");
     }
+
+    const IV = tokenBuf.subarray(0, 16);
+    const encrypted = tokenBuf.subarray(16);
 
     const decipher = crypto.createDecipheriv("aes-256-cbc", KEY, IV);
     decipher.setAutoPadding(false);
