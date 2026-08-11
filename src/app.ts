@@ -11,11 +11,9 @@ import { env } from "./config/env";
 if (env.SENTRY_DSN) {
   Sentry.init({
     dsn: env.SENTRY_DSN,
-    integrations: [
-      nodeProfilingIntegration(),
-    ],
-    tracesSampleRate: 1.0,
-    profilesSampleRate: 1.0,
+    integrations: env.NODE_ENV === "production" ? [] : [nodeProfilingIntegration()],
+    tracesSampleRate: env.NODE_ENV === "production" ? 0.05 : 1.0,
+    profilesSampleRate: env.NODE_ENV === "production" ? 0.05 : 1.0,
   });
 }
 
@@ -75,8 +73,8 @@ app.use("/api/auth", authRateLimiter, authRouter);
 // Self-signup users (students/mentors) must verify their email before using any API below.
 // Mounted after /api/auth so /me, /refresh, /verify-email and /send-verification-email stay reachable.
 app.use("/api", requireVerified);
-app.use("/api/documents", uploadRateLimiter, documentRouter);
 app.use("/api", apiRateLimiter);
+app.use("/api/documents", uploadRateLimiter, documentRouter);
 app.use("/api/config", configRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/chat", chatRouter);
