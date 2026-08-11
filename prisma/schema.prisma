@@ -58,6 +58,7 @@ enum GazaLocation {
   zawaidah
   maghazi
   khan_yunis
+  rafah
   other
 }
 
