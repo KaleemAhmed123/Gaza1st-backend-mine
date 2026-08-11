@@ -89,7 +89,7 @@ export function requireRole(allowedRoles: RoleCodeType[]) {
   };
 }
 
-export function requireActiveMentor(req: Request, _res: Response, next: NextFunction) {
+export async function requireActiveMentor(req: Request, _res: Response, next: NextFunction) {
   if (!req.authUser) {
     next(new ApiError(401, "Authentication required"));
     return;
@@ -97,6 +97,15 @@ export function requireActiveMentor(req: Request, _res: Response, next: NextFunc
 
   if (!req.authUser.roles.includes(RoleCode.mentor)) {
     next(new ApiError(403, "Mentor account is not active yet"));
+    return;
+  }
+
+  const profile = await prisma.volunteerProfile.findUnique({
+    where: { userId: req.authUser.id },
+    select: { volunteerStatus: true }
+  });
+  if (!profile || profile.volunteerStatus !== VolunteerStatus.approved) {
+    next(new ApiError(403, "Your mentor account is pending approval"));
     return;
   }
 
