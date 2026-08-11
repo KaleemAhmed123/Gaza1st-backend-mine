@@ -8,6 +8,7 @@ import { prisma } from "../../db/prisma";
 import { ApiError } from "../../shared/http";
 import { getSignedStorageUrl, getObjectStreamFromStorage } from "../../shared/storage";
 import { pipeline } from "stream";
+import { getAdminScope } from "../../shared/auth-scope";
 
 import { offerDocumentTypes } from "./document.constants";
 
@@ -22,9 +23,21 @@ export const uploadDocumentHandler = asyncHandler(async (req, res) => {
 
     let targetStudentUserId = req.authUser!.id;
     if (input.studentUserId && input.studentUserId !== req.authUser!.id) {
-      const isAuthorized = req.authUser!.roles.includes(RoleCode.master_admin) ||
-        (req.authUser!.roles.includes(RoleCode.reviewer) && !offerDocumentTypes.has(input.documentType)) ||
-        req.authUser!.roles.includes(RoleCode.regional_admin);
+      let isAuthorized = false;
+      if (req.authUser!.roles.includes(RoleCode.master_admin)) {
+        isAuthorized = true;
+      } else if (req.authUser!.roles.includes(RoleCode.reviewer) && !offerDocumentTypes.has(input.documentType)) {
+        isAuthorized = true;
+      } else if (req.authUser!.roles.includes(RoleCode.regional_admin)) {
+        const scope = await getAdminScope(req.authUser!.id);
+        if (scope.role === "regional_admin") {
+          const studentInRegion = await prisma.offer.findFirst({
+            where: { studentUserId: input.studentUserId, regionId: scope.regionId, deletedAt: null }
+          });
+          isAuthorized = !!studentInRegion;
+        }
+      }
+
       if (!isAuthorized) {
         throw new ApiError(403, "You do not have permission to upload documents on behalf of this student");
       }
