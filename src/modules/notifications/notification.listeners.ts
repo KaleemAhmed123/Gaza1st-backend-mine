@@ -28,7 +28,7 @@ async function safelyDispatchNotification(input: {
 // ---------------------------------------------------------------------------
 
 appEmitter.on(AppEvents.PROFILE_SUBMITTED, async (payload: { studentUserId: string }) => {
-  safelyDispatchNotification({
+  await safelyDispatchNotification({
     userId: payload.studentUserId,
     type: "profile_submitted",
     title: "Profile Submitted",
