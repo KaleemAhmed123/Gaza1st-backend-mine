@@ -30,5 +30,5 @@ export const AppEvents = {
 
   // Chat
   CHAT_GROUP_ADDED: "chat.group_added",
-  CHAT_GROUP_REMOVED: "chat_group_removed"
+  CHAT_GROUP_REMOVED: "chat.group_removed"
 };
