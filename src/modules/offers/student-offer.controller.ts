@@ -10,8 +10,10 @@ import {
 import { offerInputSchema } from "./offer.validation";
 
 export const listMyOffersHandler = asyncHandler(async (req, res) => {
-  const offers = await listMyOffers(req.authUser!.id);
-  sendSuccess(res, { offers });
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const result = await listMyOffers(req.authUser!.id, { page, limit });
+  sendSuccess(res, result);
 });
 
 export const getMyOfferHandler = asyncHandler(async (req, res) => {

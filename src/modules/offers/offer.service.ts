@@ -300,16 +300,36 @@ async function validateOfferBusinessRules(
   }
 }
 
-export async function listMyOffers(userId: string) {
+export async function listMyOffers(userId: string, options?: { page?: number; limit?: number }) {
   await getApprovedStudentProfile(userId);
-  const offers = await prisma.offer.findMany({
-    where: { studentUserId: userId, deletedAt: null },
-    include: offerInclude,
-    orderBy: { updatedAt: "desc" }
-  });
-  const financialRules = offers.length > 0 ? await getOfferFinancialRules() : undefined;
 
-  return Promise.all(offers.map((offer) => formatOffer(offer, financialRules)));
+  const page = Math.max(1, options?.page ?? 1);
+  const limit = Math.max(1, Math.min(100, options?.limit ?? 50));
+  const skip = (page - 1) * limit;
+
+  const [totalRecords, offers] = await Promise.all([
+    prisma.offer.count({ where: { studentUserId: userId, deletedAt: null } }),
+    prisma.offer.findMany({
+      where: { studentUserId: userId, deletedAt: null },
+      include: offerInclude,
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take: limit
+    })
+  ]);
+
+  const financialRules = offers.length > 0 ? await getOfferFinancialRules() : undefined;
+  const formattedOffers = await Promise.all(offers.map((offer) => formatOffer(offer, financialRules)));
+
+  return {
+    offers: formattedOffers,
+    pagination: {
+      page,
+      limit,
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / limit)
+    }
+  };
 }
 
 export async function getMyOffer(userId: string, offerId: string) {
@@ -1318,29 +1338,42 @@ export async function assignMentorToOffer(input: {
   return formatOffer(updatedOffer, await getOfferFinancialRules());
 }
 
-export async function listMentorOffers(userId: string) {
-  // Verify caller is an active mentor
+export async function listMentorOffers(userId: string, options?: { page?: number; limit?: number }) {
   const mentor = await prisma.user.findFirst({
-    where: {
-      id: userId,
-      deletedAt: null,
-      accountStatus: "active",
-      roles: { has: RoleCode.mentor }
-    }
+    where: { id: userId, accountStatus: "active", deletedAt: null, roles: { has: "mentor" } }
   });
 
   if (!mentor) {
     throw new ApiError(403, "You do not have permission to access mentor offers");
   }
 
-  const offers = await prisma.offer.findMany({
-    where: { mentorId: userId, deletedAt: null },
-    include: offerInclude,
-    orderBy: { updatedAt: "desc" }
-  });
+  const page = Math.max(1, options?.page ?? 1);
+  const limit = Math.max(1, Math.min(100, options?.limit ?? 50));
+  const skip = (page - 1) * limit;
+
+  const [totalRecords, offers] = await Promise.all([
+    prisma.offer.count({ where: { mentorId: userId, deletedAt: null } }),
+    prisma.offer.findMany({
+      where: { mentorId: userId, deletedAt: null },
+      include: offerInclude,
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take: limit
+    })
+  ]);
 
   const financialRules = offers.length > 0 ? await getOfferFinancialRules() : undefined;
-  return Promise.all(offers.map((offer) => formatOffer(offer, financialRules)));
+  const formattedOffers = await Promise.all(offers.map((offer) => formatOffer(offer, financialRules)));
+
+  return {
+    offers: formattedOffers,
+    pagination: {
+      page,
+      limit,
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / limit)
+    }
+  };
 }
 
 export async function getMentorStudentDetails(mentorId: string, studentId: string) {

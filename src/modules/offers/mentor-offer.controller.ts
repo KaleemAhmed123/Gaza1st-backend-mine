@@ -3,8 +3,10 @@ import { listMentorOffers, reviewOffer } from "./offer.service";
 import { reviewOfferSchema } from "./offer.validation";
 
 export const listMentorOffersHandler = asyncHandler(async (req, res) => {
-  const offers = await listMentorOffers(req.authUser!.id);
-  sendSuccess(res, { offers });
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const result = await listMentorOffers(req.authUser!.id, { page, limit });
+  sendSuccess(res, result);
 });
 
 export const reviewMentorOfferHandler = asyncHandler(async (req, res) => {
