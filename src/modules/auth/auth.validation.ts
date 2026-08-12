@@ -17,7 +17,7 @@ const dateOfBirthSchema = z
   .optional();
 
 export const registerStudentSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().toLowerCase(),
   password: z.string().min(8),
   fullName: z.string().min(1),
   phone: z.string().min(1),
@@ -25,7 +25,7 @@ export const registerStudentSchema = z.object({
 });
 
 export const registerVolunteerSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().toLowerCase(),
   password: z.string().min(8),
   fullName: z.string().min(1),
   phone: z.string().optional(),
@@ -36,12 +36,12 @@ export const registerVolunteerSchema = z.object({
 
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().toLowerCase(),
   password: z.string().min(1)
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email()
+  email: z.string().email().toLowerCase()
 });
 
 export const resetPasswordSchema = z.object({
