@@ -65,7 +65,7 @@ export async function requireVerified(req: Request, _res: Response, next: NextFu
   });
 
   if (user && !user.emailVerifiedAt) {
-    next(new ApiError(403, "Please verify your email address to continue."));
+    next(new ApiError(403, "Please verify your email address to continue.", "EMAIL_NOT_VERIFIED"));
     return;
   }
 
