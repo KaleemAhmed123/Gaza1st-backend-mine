@@ -106,61 +106,33 @@ apt-get install nginx certbot python3-certbot-nginx -y
 ```
 
 ### 3. Configure Nginx
-Create the configuration file:
+
+The nginx config is **tracked in this repo** at [`nginx/portal.conf`](nginx/portal.conf) — see
+[`nginx/README.md`](nginx/README.md) for how it's organized. It is the source of truth; the file on
+the server should always match it exactly.
+
+For a first-time server setup, copy it into place manually once:
 ```bash
-nano /etc/nginx/sites-available/portal
+cp nginx/portal.conf /etc/nginx/sites-available/portal
+ln -s /etc/nginx/sites-available/portal /etc/nginx/sites-enabled/portal
+nginx -t && systemctl reload nginx
 ```
-Paste this configuration (splits frontend and backend traffic cleanly):
-```nginx
-server {
-    listen 80;
-    server_name portal.gaza40plus.co.uk;
 
-    # Frontend (Next.js)
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Backend API
-    location /api/ {
-        proxy_pass http://localhost:8000/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Backend WebSockets
-    location /socket.io/ {
-        proxy_pass http://localhost:8000/socket.io/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-*(Save and exit)*
-
-### 4. Enable and Secure
+For every change after that, **do not hand-edit the file on the server.** Edit
+`nginx/portal.conf` here, commit it, and run:
 ```bash
-# Enable the site
-ln -s /etc/nginx/sites-available/portal /etc/nginx/sites-enabled/
+./scripts/deploy-nginx.sh
+```
+This uploads the file, validates it with `nginx -t`, reloads nginx, and automatically rolls back if
+validation fails. See the script header for the `NGINX_DEPLOY_*` environment variables it reads
+(host/user/SSH key), and `nginx/README.md` for how to provision a deploy key on a new machine.
 
-# Verify Nginx config is correct
-nginx -t
-
-# Restart Nginx
-systemctl restart nginx
-
-# Install free SSL certificate (Choose Option 2 to Redirect HTTP to HTTPS!)
+### 4. Enable SSL
+The config above already includes the frontend/API/WebSocket routing. Once it's live on port 80, get
+a certificate (this also rewrites the file to add the SSL server block and HTTP→HTTPS redirect —
+copy the result back into `nginx/portal.conf` afterward so the tracked file stays the source of
+truth):
+```bash
 certbot --nginx -d portal.gaza40plus.co.uk
 ```
 
