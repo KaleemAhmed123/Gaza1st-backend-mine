@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../../middleware/auth.middleware";
+import { requireAuth, requireCommunityGuidelines } from "../../middleware/auth.middleware";
 import {
   getConversationsHandler,
   getDirectChatHandler,
@@ -19,7 +19,7 @@ import { uploadChatAttachment } from "./chat.upload";
 
 export const chatRouter = Router();
 
-chatRouter.use(requireAuth);
+chatRouter.use(requireAuth, requireCommunityGuidelines);
 
 chatRouter.get("/conversations", getConversationsHandler);
 chatRouter.get("/shortcuts", getChatShortcutsHandler);

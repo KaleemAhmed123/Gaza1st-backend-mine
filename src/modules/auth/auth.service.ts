@@ -46,7 +46,8 @@ const studentAuthProfileSelect = {
   profileStatus: true,
   reviewNotes: true,
   hasOfferSelfReported: true,
-  hasVerifiedOffer: true
+  hasVerifiedOffer: true,
+  communityGuidelinesApproved: true
 } satisfies Prisma.StudentProfileSelect;
 
 const volunteerAuthProfileSelect = {
