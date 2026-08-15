@@ -46,6 +46,7 @@ import { adminQueryRouter, mentorQueryRouter, studentQueryRouter } from "./modul
 import { studentProfileRouter } from "./modules/student-profile/student-profile.routes";
 import { universityRouter } from "./modules/offers/university.routes";
 import { csvGeneratorRouter } from "./modules/csv-generator/csv-generator.routes";
+import { adminCsvImportRouter } from "./modules/admin/csv-imports/csv-import.routes";
 
 export const app = express();
 
@@ -93,6 +94,7 @@ app.use("/api/admin/config", adminConfigRouter);
 app.use("/api/admin/queries", adminQueryRouter);
 app.use("/api/admin/announcements", adminAnnouncementRouter);
 app.use("/api/admin/audit-logs", adminAuditLogRouter);
+app.use("/api/admin/imports", adminCsvImportRouter);
 
 app.use("/api/mentor/dashboard", mentorDashboardRouter);
 app.use("/api/mentor/offers", mentorOfferRouter);
