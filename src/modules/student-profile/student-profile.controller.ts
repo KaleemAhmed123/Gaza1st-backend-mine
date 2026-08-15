@@ -2,7 +2,8 @@ import { asyncHandler, sendSuccess } from "../../shared/http";
 import {
   getStudentProfileByUserId,
   submitMyStudentProfile,
-  updateMyStudentProfile
+  updateMyStudentProfile,
+  approveCommunityGuidelines
 } from "./student-profile.service";
 import { updateStudentProfileSchema } from "./student-profile.validation";
 
@@ -25,4 +26,12 @@ export const submitMyStudentProfileHandler = asyncHandler(async (req, res) => {
   });
 
   sendSuccess(res, { profile });
+});
+
+export const approveCommunityGuidelinesHandler = asyncHandler(async (req, res) => {
+  const profile = await approveCommunityGuidelines(req.authUser!.id);
+  sendSuccess(res, { 
+    message: "Community guidelines approved successfully.",
+    profile 
+  });
 });

@@ -150,6 +150,38 @@ export async function updateMyStudentProfile(userId: string, input: UpdateStuden
   return formatProfile(updatedProfile);
 }
 
+export async function approveCommunityGuidelines(userId: string) {
+  const profile = await getStudentProfileByUserId(userId);
+  
+  if (profile.communityGuidelinesApproved) {
+    return formatProfile(profile);
+  }
+  
+  const updatedProfile = await prisma.studentProfile.update({
+    where: { id: profile.id },
+    data: { communityGuidelinesApproved: true },
+    include: {
+      documents: {
+        where: {
+          status: DocumentStatus.active,
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          documentType: true,
+          originalFilename: true,
+          mimeType: true,
+          fileSizeBytes: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: "desc" }
+      }
+    }
+  });
+
+  return formatProfile(updatedProfile);
+}
+
 function requireProfileField(value: unknown, fieldName: string, missingFields: string[]) {
   if (value === null || value === undefined || value === "") {
     missingFields.push(fieldName);
@@ -227,6 +259,10 @@ export async function submitMyStudentProfile(input: {
       400,
       `Profile is incomplete. Missing fields: ${missingFields.join(", ") || "none"}. Missing documents: ${missingDocuments.join(", ") || "none"}.`
     );
+  }
+
+  if (!profile.communityGuidelinesApproved) {
+    throw new ApiError(400, "You must read and approve the Community Guidelines before submitting your profile.");
   }
 
   const submittedProfile = await prisma.studentProfile.update({

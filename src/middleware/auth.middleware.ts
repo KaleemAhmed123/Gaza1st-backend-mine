@@ -72,6 +72,40 @@ export async function requireVerified(req: Request, _res: Response, next: NextFu
   next();
 }
 
+export async function requireCommunityGuidelines(req: Request, _res: Response, next: NextFunction) {
+  const token = req.cookies?.accessToken;
+  if (!token) {
+    next();
+    return;
+  }
+
+  let authUser: AuthUser;
+  try {
+    authUser = verifyAccessToken(token);
+  } catch {
+    next();
+    return;
+  }
+
+  // Only enforce for students
+  if (!authUser.roles.includes(RoleCode.student)) {
+    next();
+    return;
+  }
+
+  const profile = await prisma.studentProfile.findUnique({
+    where: { userId: authUser.id },
+    select: { communityGuidelinesApproved: true }
+  });
+
+  if (profile && !profile.communityGuidelinesApproved) {
+    next(new ApiError(403, "You must approve the Community Guidelines.", "COMMUNITY_GUIDELINES_NOT_APPROVED"));
+    return;
+  }
+
+  next();
+}
+
 export function requireRole(allowedRoles: RoleCodeType[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.authUser) {
