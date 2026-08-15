@@ -87,6 +87,8 @@ enum DocumentType {
   english_proficiency
   tawjihi
   cv
+  community_guidelines
+  data_privacy_policy
 }
 
 enum DocumentStatus {
@@ -185,6 +187,7 @@ model StudentProfile {
   englishWorkplaceCertificatePossible Boolean?
   englishOtherCerts                   String?
   consentSigned                       Boolean           @default(false)
+  communityGuidelinesApproved         Boolean           @default(false)
   profileStatus                       ProfileStatus     @default(draft)
   reviewedBy                          String?           @db.ObjectId
   reviewedAt                          DateTime?

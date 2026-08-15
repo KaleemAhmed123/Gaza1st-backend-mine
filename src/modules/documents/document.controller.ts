@@ -1,8 +1,16 @@
 import fs from "fs/promises";
 import { asyncHandler, sendSuccess } from "../../shared/http";
-import { uploadDocumentSchema } from "./document.validation";
+import { uploadDocumentSchema, legalDocumentKeySchema } from "./document.validation";
 import { RoleCode } from "@prisma/client";
-import { getDownloadableDocument, saveDocument, deleteDocument } from "./document.service";
+import {
+  getDownloadableDocument,
+  saveDocument,
+  deleteDocument,
+  saveLegalDocument,
+  deleteLegalDocument,
+  getLegalDocumentMetadata,
+  getPublicLegalDocument
+} from "./document.service";
 import { verifyCsvDocToken } from "./csv-doc-token";
 import { prisma } from "../../db/prisma";
 import { ApiError } from "../../shared/http";
@@ -10,7 +18,7 @@ import { getSignedStorageUrl, getObjectStreamFromStorage } from "../../shared/st
 import { pipeline } from "stream";
 import { getAdminScope } from "../../shared/auth-scope";
 
-import { offerDocumentTypes } from "./document.constants";
+import { offerDocumentTypes, legalDocumentKeyMap } from "./document.constants";
 
 export const uploadDocumentHandler = asyncHandler(async (req, res) => {
   if (!req.file) {
@@ -239,4 +247,89 @@ export const shortLinkDownloadHandler = asyncHandler(async (req, res) => {
 export const deleteDocumentHandler = asyncHandler(async (req, res) => {
   await deleteDocument(req.params.id, req.authUser!.id);
   sendSuccess(res, { message: "Document removed" });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Legal documents (Community Guidelines, Data Privacy Policy)
+// ─────────────────────────────────────────────────────────────────────────
+
+function resolveLegalDocumentType(rawKey: string) {
+  const key = legalDocumentKeySchema.parse(rawKey);
+  return legalDocumentKeyMap[key];
+}
+
+export const uploadLegalDocumentHandler = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: { message: "File is required" } });
+    return;
+  }
+
+  const documentType = resolveLegalDocumentType(req.params.key);
+  const document = await saveLegalDocument({
+    adminUserId: req.authUser!.id,
+    documentType,
+    file: req.file
+  });
+
+  sendSuccess(
+    res,
+    {
+      document: {
+        id: document.id,
+        originalFilename: document.originalFilename,
+        mimeType: document.mimeType,
+        fileSizeBytes: document.fileSizeBytes,
+        createdAt: document.createdAt
+      }
+    },
+    201
+  );
+});
+
+export const deleteLegalDocumentHandler = asyncHandler(async (req, res) => {
+  const documentType = resolveLegalDocumentType(req.params.key);
+  await deleteLegalDocument(documentType);
+  sendSuccess(res, { message: "Document removed" });
+});
+
+export const getLegalDocumentMetadataHandler = asyncHandler(async (req, res) => {
+  const documentType = resolveLegalDocumentType(req.params.key);
+  const document = await getLegalDocumentMetadata(documentType);
+  sendSuccess(res, { document });
+});
+
+export const previewLegalDocumentHandler = asyncHandler(async (req, res, next) => {
+  const documentType = resolveLegalDocumentType(req.params.key);
+  const { document, absolutePath } = await getPublicLegalDocument(documentType);
+
+  if (document.storageBucket !== "local_private") {
+    const s3Stream = await getObjectStreamFromStorage(document.storageKey, document.storageBucket);
+    if (s3Stream) {
+      res.setHeader("Content-Type", document.mimeType);
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${encodeURIComponent(document.originalFilename)}"`
+      );
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      pipeline(s3Stream, res, (err) => {
+        if (err) {
+          console.error("Pipeline legal document preview error:", err);
+          if (!res.headersSent) {
+            next(err);
+          }
+        }
+      });
+      return;
+    }
+  }
+
+  res.setHeader("Content-Type", document.mimeType);
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename="${encodeURIComponent(document.originalFilename)}"`
+  );
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
+  const stream = await fs.readFile(absolutePath!);
+  res.end(stream);
 });
