@@ -406,7 +406,10 @@ export async function getPublicLegalDocument(documentType: DocumentType) {
   if (document.storageBucket === localPrivateBucket) {
     const absolutePath = path.resolve(process.cwd(), document.storageKey);
     const expectedRoot = path.resolve(process.cwd(), privateUploadRoot);
-    if (!absolutePath.startsWith(expectedRoot)) {
+    // path.relative rather than startsWith: "uploads/private-evil" starts with
+    // "uploads/private" but is a different directory.
+    const relative = path.relative(expectedRoot, absolutePath);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
       throw new ApiError(400, "Invalid storage key");
     }
     if (!fs.existsSync(absolutePath)) {

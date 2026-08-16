@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import readline from 'readline';
 
 const prisma = new PrismaClient();
 
@@ -70,6 +71,24 @@ async function main() {
     console.log("Student Profile found. Reversing onboarding...");
   }
 
+  // This deletes every document the user owns, not only onboarding ones, and it cannot be
+  // undone. Require the operator to retype the email so a mistyped search term can't wipe
+  // the wrong student. Pass --yes to skip when scripting.
+  if (!process.argv.includes("--yes")) {
+    const answer = await new Promise<string>((resolve) => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      rl.question(`\nType "${user.email}" to confirm deletion: `, (value) => {
+        rl.close();
+        resolve(value.trim());
+      });
+    });
+
+    if (answer !== user.email) {
+      console.error("Confirmation did not match. Nothing was deleted.");
+      process.exit(1);
+    }
+  }
+
   // Start a transaction to delete the profile and associated documents
   await prisma.$transaction(async (tx) => {
     // Delete documents owned by the user
@@ -94,6 +113,7 @@ async function main() {
 main()
   .catch(err => {
     console.error("Error occurred:", err);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

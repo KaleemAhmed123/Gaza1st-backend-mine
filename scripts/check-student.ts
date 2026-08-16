@@ -107,6 +107,7 @@ async function main() {
 main()
   .catch(err => {
     console.error("Error occurred:", err);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
