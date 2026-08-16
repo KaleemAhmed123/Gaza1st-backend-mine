@@ -15,10 +15,14 @@ Repos sit side-by-side in one folder (see root `docker-compose.yml` header):
 
 ```
 GAZA_40_PLUS/
-  docker-compose.yml            # copied up from Gaza40-Student-Portal/
-  Gaza40-Student-Portal/        # backend  (this repo)
-  gaza40plus-frontend/          # frontend
+  docker-compose.yml            # copied up from backend/
+  backend/                      # backend  (this repo)
+  frontend/                     # frontend
 ```
+
+The folder names are load-bearing: `docker-compose.yml` points its build
+contexts and `env_file` paths at `./backend` and `./frontend`. Clone into
+those names, or update the compose file to match.
 
 ## nginx
 
@@ -30,7 +34,7 @@ insert them for you, so on first setup you can start from the plain proxy block.
 Install / update on the VPS:
 
 ```bash
-sudo cp Gaza40-Student-Portal/deploy/nginx/portal.conf /etc/nginx/sites-available/portal
+sudo cp backend/deploy/nginx/portal.conf /etc/nginx/sites-available/portal
 sudo ln -sf /etc/nginx/sites-available/portal /etc/nginx/sites-enabled/portal
 sudo nginx -t && sudo systemctl reload nginx
 ```
@@ -59,7 +63,7 @@ docker compose up -d backend          # recreate just the backend (e.g. after .e
 ## Env
 
 `.env` files live inside each repo folder and hold secrets — **not committed**.
-Key domain-related values in `Gaza40-Student-Portal/.env`:
+Key domain-related values in `backend/.env`:
 
 | var            | value                              | why                                            |
 |----------------|------------------------------------|------------------------------------------------|
