@@ -27,27 +27,28 @@ SSH into your server and run:
 mkdir GAZA_40_PLUS
 cd GAZA_40_PLUS
 
-# Clone your repositories side-by-side using SSH
-git clone git@github.com:KaleemAhmed123/Gaza40-Student-Portal.git
-git clone git@github.com:KaleemAhmed123/gaza40plus-frontend.git
+# Clone your repositories side-by-side using SSH.
+# The folder names matter — docker-compose.yml points at ./backend and ./frontend.
+git clone git@github.com:KaleemAhmed123/Gaza40-Student-Portal.git backend
+git clone git@github.com:hamza1851/gaza40plus.git frontend
 ```
 *(If the terminal asks: `Are you sure you want to continue connecting (yes/no/[fingerprint])?`, you **MUST** type the word `yes` and press Enter, otherwise the connection will fail).*
 
 **3. Extract the Docker Compose File**
 Copy the compose file out of the backend repo so it sits at the root of the master folder:
 ```bash
-cp Gaza40-Student-Portal/docker-compose.yml .
+cp backend/docker-compose.yml .
 ```
 
 **4. Setup Environment Variables**
 Create your secure `.env` files on the server (do this BEFORE building):
 ```bash
 # Backend Env
-nano Gaza40-Student-Portal/.env
+nano backend/.env
 # (Paste backend vars, Ctrl+O, Enter, Ctrl+X)
 
 # Frontend Env
-nano gaza40plus-frontend/.env
+nano frontend/.env
 # (Paste frontend vars, Ctrl+O, Enter, Ctrl+X)
 ```
 
