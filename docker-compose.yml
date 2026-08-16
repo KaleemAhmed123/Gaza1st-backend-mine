@@ -6,11 +6,12 @@
 #
 # HOW TO USE THIS ON THE VPS:
 # 1. Create a common folder on your VPS: `mkdir gaza40_app && cd gaza40_app`
-# 2. Clone BOTH repositories into this folder side-by-side:
-#    - `git clone <backend-repo-url> Gaza40-Student-Portal`
-#    - `git clone <frontend-repo-url> gaza40plus-frontend`
+# 2. Clone BOTH repositories into this folder side-by-side.
+#    The folder names matter: the build contexts below point at them.
+#    - `git clone <backend-repo-url> backend`
+#    - `git clone <frontend-repo-url> frontend`
 # 3. COPY this file from the backend repo UP into the common folder:
-#    - `cp Gaza40-Student-Portal/docker-compose.yml .`
+#    - `cp backend/docker-compose.yml .`
 # 4. Create your `.env` files inside both repo folders.
 # 5. Run `docker compose up -d --build` from the common folder!
 # ==============================================================================
@@ -18,12 +19,12 @@
 services:
   backend:
     build:
-      context: ./Gaza40-Student-Portal
+      context: ./backend
       dockerfile: Dockerfile
     container_name: gaza40-backend
     restart: always
     env_file:
-      - ./Gaza40-Student-Portal/.env
+      - ./backend/.env
     environment:
       # Keep V8 heap under the 1g memory limit below (else OOM-kill mid-GC)
       - NODE_OPTIONS=--max-old-space-size=768
@@ -39,12 +40,12 @@ services:
 
   frontend:
     build:
-      context: ./gaza40plus-frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: gaza40-frontend
     restart: always
     env_file:
-      - ./gaza40plus-frontend/.env
+      - ./frontend/.env
     environment:
       # This points to the internal Docker network name 'backend'
       - BACKEND_API_URL=http://backend:8000
