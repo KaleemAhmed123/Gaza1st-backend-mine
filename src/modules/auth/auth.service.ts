@@ -238,13 +238,8 @@ export async function registerStudent(input: RegisterStudentInput) {
     }
   });
 
-  void sendEmailBestEffort({
-    to: [user.email],
-    subject: "Welcome to Gaza40",
-    text: `Hello ${user.fullName}, welcome to Gaza40!`,
-    html: emailTemplates.welcome(user.fullName, 'student')
-  });
-
+  // The welcome email goes out from verifyEmail, not here — it tells the user they can log
+  // in and use the portal, which isn't true until they've verified.
   // Send the real email-verification link (screen at /verify-email tells the user to click it).
   void sendVerificationEmail(user.id, {});
 
@@ -278,13 +273,7 @@ export async function registerVolunteer(input: RegisterVolunteerInput) {
     }
   });
 
-  void sendEmailBestEffort({
-    to: [user.email],
-    subject: "Welcome to Gaza40",
-    text: `Hello ${user.fullName}, welcome to Gaza40!`,
-    html: emailTemplates.welcome(user.fullName, 'mentor')
-  });
-
+  // Welcome email is sent from verifyEmail — see registerStudent.
   // Send the real email-verification link (screen at /verify-email tells the user to click it).
   void sendVerificationEmail(user.id, {});
 
@@ -455,6 +444,31 @@ export async function verifyEmail(input: VerifyEmailInput) {
     entityType: "user",
     entityId: authToken.userId
   });
+
+  // Welcome the user now that the address is confirmed and they can actually log in.
+  // Admin-created accounts are verified on creation and get their own invite email, so this
+  // only ever fires for the two self-signup roles.
+  const verifiedUser = await prisma.user.findUnique({
+    where: { id: authToken.userId },
+    select: { email: true, fullName: true, roles: true }
+  });
+
+  if (verifiedUser) {
+    const welcomeRole = verifiedUser.roles.includes(RoleCode.student)
+      ? "student"
+      : verifiedUser.roles.includes(RoleCode.mentor)
+        ? "mentor"
+        : null;
+
+    if (welcomeRole) {
+      void sendEmailBestEffort({
+        to: [verifiedUser.email],
+        subject: "Welcome to Gaza40",
+        text: `Hello ${verifiedUser.fullName}, welcome to Gaza40!`,
+        html: emailTemplates.welcome(verifiedUser.fullName, welcomeRole)
+      });
+    }
+  }
 
   return { verified: true };
 }
