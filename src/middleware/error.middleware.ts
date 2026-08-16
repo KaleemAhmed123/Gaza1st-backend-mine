@@ -21,7 +21,9 @@ export function errorHandler(
   }
 
   if (error instanceof ApiError) {
-    res.status(error.statusCode).json({ error: { message: error.message } });
+    res.status(error.statusCode).json({
+      error: { message: error.message, ...(error.code ? { code: error.code } : {}) }
+    });
     return;
   }
 
