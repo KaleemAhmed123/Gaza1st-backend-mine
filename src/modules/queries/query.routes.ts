@@ -1,6 +1,6 @@
 import { RoleCode } from "@prisma/client";
 import { Router } from "express";
-import { requireActiveMentor, requireAuth, requireRole } from "../../middleware/auth.middleware";
+import { requireActiveMentor, requireAuth, requireRole, requireCommunityGuidelines } from "../../middleware/auth.middleware";
 import {
   addAdminQueryMessageHandler,
   assignQueryHandler,
@@ -29,7 +29,7 @@ export const studentQueryRouter = Router();
 export const adminQueryRouter = Router();
 export const mentorQueryRouter = Router();
 
-studentQueryRouter.use(requireAuth, requireRole([RoleCode.student]));
+studentQueryRouter.use(requireAuth, requireRole([RoleCode.student]), requireCommunityGuidelines);
 studentQueryRouter.post("/", createQueryHandler);
 studentQueryRouter.get("/my", listMyQueriesHandler);
 studentQueryRouter.get("/:id", getMyQueryHandler);

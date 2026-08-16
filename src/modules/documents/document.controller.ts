@@ -1,8 +1,17 @@
 import fs from "fs/promises";
+import { createReadStream } from "fs";
 import { asyncHandler, sendSuccess } from "../../shared/http";
-import { uploadDocumentSchema } from "./document.validation";
+import { uploadDocumentSchema, legalDocumentKeySchema } from "./document.validation";
 import { RoleCode } from "@prisma/client";
-import { getDownloadableDocument, saveDocument, deleteDocument } from "./document.service";
+import {
+  getDownloadableDocument,
+  saveDocument,
+  deleteDocument,
+  saveLegalDocument,
+  deleteLegalDocument,
+  getLegalDocumentMetadata,
+  getPublicLegalDocument
+} from "./document.service";
 import { verifyCsvDocToken } from "./csv-doc-token";
 import { prisma } from "../../db/prisma";
 import { ApiError } from "../../shared/http";
@@ -10,7 +19,7 @@ import { getSignedStorageUrl, getObjectStreamFromStorage } from "../../shared/st
 import { pipeline } from "stream";
 import { getAdminScope } from "../../shared/auth-scope";
 
-import { offerDocumentTypes } from "./document.constants";
+import { offerDocumentTypes, legalDocumentKeyMap, localPrivateBucket } from "./document.constants";
 
 export const uploadDocumentHandler = asyncHandler(async (req, res) => {
   if (!req.file) {
@@ -239,4 +248,105 @@ export const shortLinkDownloadHandler = asyncHandler(async (req, res) => {
 export const deleteDocumentHandler = asyncHandler(async (req, res) => {
   await deleteDocument(req.params.id, req.authUser!.id);
   sendSuccess(res, { message: "Document removed" });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Legal documents (Community Guidelines, Data Privacy Policy)
+// ─────────────────────────────────────────────────────────────────────────
+
+function resolveLegalDocumentType(rawKey: string) {
+  const key = legalDocumentKeySchema.parse(rawKey);
+  return legalDocumentKeyMap[key];
+}
+
+export const uploadLegalDocumentHandler = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: { message: "File is required" } });
+    return;
+  }
+
+  const documentType = resolveLegalDocumentType(req.params.key);
+  const document = await saveLegalDocument({
+    adminUserId: req.authUser!.id,
+    documentType,
+    file: req.file
+  });
+
+  sendSuccess(
+    res,
+    {
+      document: {
+        id: document.id,
+        originalFilename: document.originalFilename,
+        mimeType: document.mimeType,
+        fileSizeBytes: document.fileSizeBytes,
+        createdAt: document.createdAt
+      }
+    },
+    201
+  );
+});
+
+export const deleteLegalDocumentHandler = asyncHandler(async (req, res) => {
+  const documentType = resolveLegalDocumentType(req.params.key);
+  await deleteLegalDocument(documentType);
+  sendSuccess(res, { message: "Document removed" });
+});
+
+export const getLegalDocumentMetadataHandler = asyncHandler(async (req, res) => {
+  const documentType = resolveLegalDocumentType(req.params.key);
+  const document = await getLegalDocumentMetadata(documentType);
+  sendSuccess(res, { document });
+});
+
+export const previewLegalDocumentHandler = asyncHandler(async (req, res, next) => {
+  const documentType = resolveLegalDocumentType(req.params.key);
+  const { document, absolutePath } = await getPublicLegalDocument(documentType);
+
+  // Public policy documents, identical for every reader, replaced a couple of times a year.
+  // Unlike student documents these are safe to cache, and caching them keeps an anonymous
+  // visitor reading the privacy policy from streaming the file out of R2 on every hit.
+  // Uploading a replacement supersedes the row, so the next request resolves a new id.
+  const setHeaders = () => {
+    res.setHeader("Content-Type", document.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${encodeURIComponent(document.originalFilename)}"`
+    );
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("ETag", `"${document.id}"`);
+  };
+
+  if (req.headers["if-none-match"] === `"${document.id}"`) {
+    setHeaders();
+    res.status(304).end();
+    return;
+  }
+
+  if (document.storageBucket !== localPrivateBucket) {
+    const s3Stream = await getObjectStreamFromStorage(document.storageKey, document.storageBucket);
+    if (s3Stream) {
+      setHeaders();
+      pipeline(s3Stream, res, (err) => {
+        if (err) {
+          console.error("Pipeline legal document preview error:", err);
+          if (!res.headersSent) {
+            next(err);
+          }
+        }
+      });
+      return;
+    }
+  }
+
+  setHeaders();
+  // Streamed rather than read into memory: these are up to 10MB and served unauthenticated.
+  pipeline(createReadStream(absolutePath!), res, (err) => {
+    if (err) {
+      console.error("Local legal document preview error:", err);
+      if (!res.headersSent) {
+        next(err);
+      }
+    }
+  });
 });

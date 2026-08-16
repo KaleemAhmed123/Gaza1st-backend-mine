@@ -72,6 +72,33 @@ export async function requireVerified(req: Request, _res: Response, next: NextFu
   next();
 }
 
+// Always mounted after requireAuth, so req.authUser is already populated — re-reading and
+// re-verifying the cookie here would just be a second copy of that logic.
+export async function requireCommunityGuidelines(req: Request, _res: Response, next: NextFunction) {
+  const authUser = req.authUser;
+
+  // Only students are gated.
+  if (!authUser || !authUser.roles.includes(RoleCode.student)) {
+    next();
+    return;
+  }
+
+  const profile = await prisma.studentProfile.findUnique({
+    where: { userId: authUser.id },
+    select: { communityGuidelinesApproved: true }
+  });
+
+  // No profile means they have not been through onboarding, so they have not approved
+  // anything — block rather than pass. (Profiles are created lazily on first access to
+  // /api/student/profile/me, which is deliberately not gated so onboarding still works.)
+  if (!profile?.communityGuidelinesApproved) {
+    next(new ApiError(403, "You must approve the Community Guidelines.", "COMMUNITY_GUIDELINES_NOT_APPROVED"));
+    return;
+  }
+
+  next();
+}
+
 export function requireRole(allowedRoles: RoleCodeType[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.authUser) {

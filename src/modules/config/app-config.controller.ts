@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 import * as appConfigService from "./app-config.service";
 
-// Public configs allowed to be fetched without auth
+// Public configs allowed to be fetched without auth.
+// community_guidelines_url / data_privacy_url used to live here but are now served as
+// actual stored documents via /api/documents/legal/:key/preview — Document.status is the
+// single source of truth for "the current one," not this config table.
 const PUBLIC_CONFIG_KEYS = ["homepage_faqs", "homepage_metrics", "require_admin_approval_tags", "announcement_limits", "enable_student_chat", "homepage_timeline"];
 
 export async function getPublicConfigHandler(req: Request, res: Response) {

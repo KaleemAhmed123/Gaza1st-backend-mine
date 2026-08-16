@@ -1,6 +1,9 @@
 import { DocumentType } from "@prisma/client";
 
-export const allowedDocumentTypes = [
+// Explicitly typed DocumentType[] (not a narrowed `as const` literal) — community_guidelines
+// and data_privacy_policy exist on the enum but are deliberately excluded here; they go
+// through the separate legal-document upload path in this file, never the general one.
+export const allowedDocumentTypes: DocumentType[] = [
   DocumentType.national_id,
   DocumentType.passport,
   DocumentType.moi_letter,
@@ -11,7 +14,7 @@ export const allowedDocumentTypes = [
   DocumentType.english_proficiency,
   DocumentType.tawjihi,
   DocumentType.cv
-] as const;
+];
 
 export const profileDocumentTypes = new Set<DocumentType>([
   DocumentType.national_id,
@@ -74,4 +77,16 @@ export const maxUploadSizeBytes = 5 * 1024 * 1024;
 export const signatureMaxUploadSizeBytes = 1 * 1024 * 1024; // 1MB for signatures
 export const localPrivateBucket = "local_private";
 export const privateUploadRoot = "uploads/private";
+
+// Legal documents (Community Guidelines, Data Privacy Policy) — app-level, not tied to a
+// student. Own upload size limit so it never shares (and can never accidentally loosen)
+// the 5MB cap on student profile documents above.
+export const legalDocumentMaxUploadSizeBytes = 10 * 1024 * 1024; // 10MB
+
+export const legalDocumentKeyMap: Record<string, DocumentType> = {
+  community_guidelines: DocumentType.community_guidelines,
+  data_privacy: DocumentType.data_privacy_policy
+};
+
+export const legalDocumentTypes = new Set<DocumentType>(Object.values(legalDocumentKeyMap));
 

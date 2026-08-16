@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth, requireRole } from "../../middleware/auth.middleware";
+import { requireAuth, requireRole, requireCommunityGuidelines } from "../../middleware/auth.middleware";
 import {
   createMyOfferHandler,
   getMyOfferHandler,
@@ -11,7 +11,7 @@ import {
 
 export const studentOfferRouter = Router();
 
-studentOfferRouter.use(requireAuth, requireRole(["student"]));
+studentOfferRouter.use(requireAuth, requireRole(["student"]), requireCommunityGuidelines);
 studentOfferRouter.get("/", listMyOffersHandler);
 studentOfferRouter.post("/", createMyOfferHandler);
 studentOfferRouter.get("/:id", getMyOfferHandler);

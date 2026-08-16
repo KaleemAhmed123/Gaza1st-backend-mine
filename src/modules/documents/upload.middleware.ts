@@ -8,6 +8,7 @@ import {
   allowedMimeTypes,
   imageOnlyDocumentTypes,
   imageOnlyMimeTypes,
+  legalDocumentMaxUploadSizeBytes,
   maxUploadSizeBytes,
   privateUploadRoot,
   signatureMaxUploadSizeBytes
@@ -41,6 +42,24 @@ export const uploadSingleDocument = multer({
       }
     }
 
+    callback(null, true);
+  }
+}).single("file");
+
+// Community Guidelines / Data Privacy Policy uploads — its own multer instance so the
+// 10MB cap here can never bleed into (or be confused with) the 5MB student-document limit
+// enforced by uploadSingleDocument above.
+export const uploadSingleLegalDocument = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: legalDocumentMaxUploadSizeBytes
+  },
+  fileFilter: (req, file, callback) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    if (!allowedMimeTypes.has(file.mimetype) || !allowedFileExtensions.has(extension)) {
+      callback(new ApiError(400, "Only PDF, JPG, JPEG, and PNG files are allowed"));
+      return;
+    }
     callback(null, true);
   }
 }).single("file");

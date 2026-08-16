@@ -6,6 +6,7 @@ import { recordAuditLog } from "../../shared/audit";
 import { ApiError } from "../../shared/http";
 import {
   imageOnlyDocumentTypes,
+  legalDocumentTypes,
   localPrivateBucket,
   mentorVisibleDocumentTypes,
   offerDocumentTypes,
@@ -291,4 +292,131 @@ export async function deleteDocument(documentId: string, requestingUserId: strin
     where: { id: documentId },
     data: { status: DocumentStatus.superseded, deletedAt: new Date() }
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Legal documents (Community Guidelines, Data Privacy Policy)
+//
+// App-level documents, not owned by a student: studentProfileId/offerId stay null.
+// Access control is a fixed allowlist of two DocumentType values, not a per-user check —
+// these are public policy documents, never student data.
+// ─────────────────────────────────────────────────────────────────────────
+
+function assertLegalDocumentType(documentType: DocumentType) {
+  if (!legalDocumentTypes.has(documentType)) {
+    throw new ApiError(400, "Unsupported legal document type");
+  }
+}
+
+export async function saveLegalDocument(input: {
+  adminUserId: string;
+  documentType: DocumentType;
+  file: Express.Multer.File;
+}) {
+  assertLegalDocumentType(input.documentType);
+
+  return prisma.$transaction(async (tx) => {
+    await tx.document.updateMany({
+      where: {
+        documentType: input.documentType,
+        studentProfileId: null,
+        status: DocumentStatus.active
+      },
+      data: {
+        status: DocumentStatus.superseded
+      }
+    });
+
+    const { key, bucket } = await uploadToStorage(
+      input.file.buffer,
+      input.file.originalname,
+      input.file.mimetype,
+      "legal-documents"
+    );
+
+    return tx.document.create({
+      data: {
+        ownerUserId: input.adminUserId,
+        studentProfileId: null,
+        offerId: null,
+        documentType: input.documentType,
+        originalFilename: input.file.originalname,
+        mimeType: input.file.mimetype,
+        fileSizeBytes: input.file.size,
+        storageBucket: bucket,
+        storageKey: key,
+        status: DocumentStatus.active,
+        uploadedBy: input.adminUserId,
+        deletedAt: null
+      }
+    });
+  });
+}
+
+export async function deleteLegalDocument(documentType: DocumentType) {
+  assertLegalDocumentType(documentType);
+
+  const document = await prisma.document.findFirst({
+    where: { documentType, studentProfileId: null, status: DocumentStatus.active, deletedAt: null }
+  });
+
+  if (!document) {
+    throw new ApiError(404, "No document is currently configured for this type");
+  }
+
+  return prisma.document.update({
+    where: { id: document.id },
+    data: { status: DocumentStatus.superseded, deletedAt: new Date() }
+  });
+}
+
+export async function getLegalDocumentMetadata(documentType: DocumentType) {
+  assertLegalDocumentType(documentType);
+
+  return prisma.document.findFirst({
+    where: { documentType, studentProfileId: null, status: DocumentStatus.active, deletedAt: null },
+    select: {
+      id: true,
+      originalFilename: true,
+      mimeType: true,
+      fileSizeBytes: true,
+      createdAt: true,
+      uploadedBy: true
+    }
+  });
+}
+
+/**
+ * Resolves the currently-active document for a legal document type, for the fully public
+ * preview route. No auth, no per-user access check — only the fixed allowlist in
+ * assertLegalDocumentType stands between this and an arbitrary document, which is why it
+ * never accepts a raw documentId, only a DocumentType from the known legal set.
+ */
+export async function getPublicLegalDocument(documentType: DocumentType) {
+  assertLegalDocumentType(documentType);
+
+  const document = await prisma.document.findFirst({
+    where: { documentType, studentProfileId: null, status: DocumentStatus.active, deletedAt: null }
+  });
+
+  if (!document) {
+    throw new ApiError(404, "This document is not available yet", "LEGAL_DOCUMENT_NOT_CONFIGURED");
+  }
+
+  if (document.storageBucket === localPrivateBucket) {
+    const absolutePath = path.resolve(process.cwd(), document.storageKey);
+    const expectedRoot = path.resolve(process.cwd(), privateUploadRoot);
+    // path.relative rather than startsWith: "uploads/private-evil" starts with
+    // "uploads/private" but is a different directory.
+    const relative = path.relative(expectedRoot, absolutePath);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+      throw new ApiError(400, "Invalid storage key");
+    }
+    if (!fs.existsSync(absolutePath)) {
+      throw new ApiError(404, "Document file not found");
+    }
+    return { document, absolutePath };
+  }
+
+  return { document, absolutePath: undefined };
 }
