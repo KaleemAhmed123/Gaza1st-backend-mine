@@ -1,177 +1,141 @@
 import { prisma } from "../../../db/prisma";
 import { parse } from "csv-parse/sync";
-import { createNotification } from "../../notifications/notification.service";
+import { ApiError } from "../../../shared/http";
 
-export async function processCsvImport(
-  auditLogId: string,
-  dataset: "universities" | "regions",
-  fileBuffer: Buffer
-) {
+export type CsvImportResult = {
+  name: string;
+  region: string;
+  success: boolean;
+  message: string;
+};
+
+export type CsvImportSummary = {
+  totalRows: number;
+  successfulRows: number;
+  failedRows: number;
+};
+
+// ponytail: imports run inline on the request, so the row count is capped rather than
+// queued. Regions and universities are master data — a few hundred rows in practice.
+// If a real import ever exceeds this, move to a job queue instead of raising the cap.
+export const maxCsvImportRows = 5000;
+
+/**
+ * A leading row is treated as a header when its first cell mentions "name". Same rule the
+ * admin-facing template uses; kept in one place so the count and the import can't disagree.
+ */
+function stripHeader(records: string[][]): string[][] {
+  const first = records[0]?.[0];
+  return typeof first === "string" && first.toLowerCase().includes("name")
+    ? records.slice(1)
+    : records;
+}
+
+export function parseCsvRows(fileBuffer: Buffer): string[][] {
+  let records: string[][];
   try {
-    const records = parse(fileBuffer, { skip_empty_lines: true });
-    if (!records || records.length === 0) {
-      throw new Error("CSV file is empty or invalid.");
-    }
-
-    let startIndex = 0;
-    if (typeof records[0][0] === "string" && records[0][0].toLowerCase().includes("name")) {
-      startIndex = 1;
-    }
-
-    const recordsToProcess = records.slice(startIndex);
-    const totalRows = recordsToProcess.length;
-    let processedRows = 0;
-    let successfulRows = 0;
-    let failedRows = 0;
-    const finalResults: Array<{ name: string; region: string; success: boolean; message: string }> = [];
-
-    const BATCH_SIZE = 50;
-
-    for (let i = 0; i < recordsToProcess.length; i += BATCH_SIZE) {
-      const batch = recordsToProcess.slice(i, i + BATCH_SIZE);
-      const batchResults: typeof finalResults = [];
-
-      await prisma.$transaction(async (tx) => {
-        for (const row of batch) {
-          if (dataset === "regions") {
-            const name = row[0]?.trim();
-            const code = row[1]?.trim();
-
-            if (!name || !code) {
-              batchResults.push({ name: name || "Unknown", region: "-", success: false, message: "Missing name or code" });
-              continue;
-            }
-
-            const existing = await tx.region.findFirst({
-              where: {
-                OR: [
-                  { name: { equals: name, mode: "insensitive" } },
-                  { code: { equals: code, mode: "insensitive" } }
-                ]
-              }
-            });
-
-            if (existing) {
-              batchResults.push({ name, region: "-", success: false, message: "Duplicate region name or code" });
-            } else {
-              await tx.region.create({
-                data: { name, code, isActive: true }
-              });
-              batchResults.push({ name, region: "-", success: true, message: "Added" });
-            }
-          } else if (dataset === "universities") {
-            const name = row[0]?.trim();
-            const regionName = row[1]?.trim();
-            const regionCode = row[2]?.trim();
-
-            if (!name || (!regionName && !regionCode)) {
-              batchResults.push({ name: name || "Unknown", region: regionName || regionCode || "-", success: false, message: "Missing name or region" });
-              continue;
-            }
-
-            const region = await tx.region.findFirst({
-              where: {
-                OR: [
-                  regionName ? { name: { equals: regionName, mode: "insensitive" } } : {},
-                  regionCode ? { code: { equals: regionCode, mode: "insensitive" } } : {}
-                ].filter(x => Object.keys(x).length > 0)
-              }
-            });
-
-            if (!region) {
-              batchResults.push({ name, region: regionName || regionCode || "-", success: false, message: "Region not found" });
-              continue;
-            }
-
-            const existingUni = await tx.university.findFirst({
-              where: {
-                regionId: region.id,
-                name: { equals: name, mode: "insensitive" }
-              }
-            });
-
-            if (existingUni) {
-              batchResults.push({ name, region: region.name, success: false, message: "Duplicate university in this region" });
-            } else {
-              await tx.university.create({
-                data: { name, regionId: region.id, isActive: true }
-              });
-              batchResults.push({ name, region: region.name, success: true, message: "Added" });
-            }
-          }
-        }
-      });
-
-      finalResults.push(...batchResults);
-      processedRows += batch.length;
-      
-      for (const r of batchResults) {
-        if (r.success) successfulRows++;
-        else failedRows++;
-      }
-
-      await prisma.auditLog.update({
-        where: { id: auditLogId },
-        data: {
-          metadata: {
-            status: "processing",
-            totalRows,
-            processedRows,
-            successfulRows,
-            failedRows,
-            results: finalResults
-          }
-        }
-      });
-    }
-
-    const auditLog = await prisma.auditLog.update({
-      where: { id: auditLogId },
-      data: {
-        metadata: {
-          status: "completed",
-          totalRows,
-          processedRows,
-          successfulRows,
-          failedRows,
-          results: finalResults
-        }
-      }
-    });
-
-    if (auditLog.actorUserId) {
-      await createNotification({
-        userId: auditLog.actorUserId,
-        type: "csv_import_completed",
-        title: "CSV Import Completed",
-        body: `Your ${dataset} CSV import has finished processing.`,
-        link: "/admin/settings"
-      });
-    }
-  } catch (error: any) {
-    console.error("CSV Import Error:", error);
-    const audit = await prisma.auditLog.findUnique({ where: { id: auditLogId } });
-    const meta = (audit?.metadata as any) || {};
-
-    const failedLog = await prisma.auditLog.update({
-      where: { id: auditLogId },
-      data: {
-        metadata: {
-          ...meta,
-          status: "failed",
-          errorMessage: error.message || "Unknown error occurred"
-        }
-      }
-    });
-
-    if (failedLog.actorUserId) {
-      await createNotification({
-        userId: failedLog.actorUserId,
-        type: "csv_import_failed",
-        title: "CSV Import Failed",
-        body: `Your ${dataset} CSV import failed to process.`,
-        link: "/admin/settings"
-      });
-    }
+    records = parse(fileBuffer, { skip_empty_lines: true });
+  } catch {
+    throw new ApiError(400, "Failed to parse CSV file");
   }
+
+  const rows = stripHeader(records);
+  if (rows.length === 0) {
+    throw new ApiError(400, "CSV file is empty");
+  }
+  if (rows.length > maxCsvImportRows) {
+    throw new ApiError(
+      400,
+      `CSV has ${rows.length} rows, which is over the ${maxCsvImportRows} row limit. Split the file and import it in parts.`
+    );
+  }
+
+  return rows;
+}
+
+async function importRegionRow(row: string[]): Promise<CsvImportResult> {
+  const name = row[0]?.trim();
+  const code = row[1]?.trim();
+
+  if (!name || !code) {
+    return { name: name || "Unknown", region: "-", success: false, message: "Missing name or code" };
+  }
+
+  const existing = await prisma.region.findFirst({
+    where: {
+      OR: [
+        { name: { equals: name, mode: "insensitive" } },
+        { code: { equals: code, mode: "insensitive" } }
+      ]
+    }
+  });
+
+  if (existing) {
+    return { name, region: "-", success: false, message: "Duplicate region name or code" };
+  }
+
+  await prisma.region.create({ data: { name, code, isActive: true } });
+  return { name, region: "-", success: true, message: "Added" };
+}
+
+async function importUniversityRow(row: string[]): Promise<CsvImportResult> {
+  const name = row[0]?.trim();
+  const regionName = row[1]?.trim();
+  const regionCode = row[2]?.trim();
+  const regionLabel = regionName || regionCode || "-";
+
+  if (!name || (!regionName && !regionCode)) {
+    return { name: name || "Unknown", region: regionLabel, success: false, message: "Missing name or region" };
+  }
+
+  const regionMatches = [
+    regionName ? { name: { equals: regionName, mode: "insensitive" as const } } : null,
+    regionCode ? { code: { equals: regionCode, mode: "insensitive" as const } } : null
+  ].filter((match): match is NonNullable<typeof match> => match !== null);
+
+  const region = await prisma.region.findFirst({ where: { OR: regionMatches } });
+
+  if (!region) {
+    return { name, region: regionLabel, success: false, message: "Region not found" };
+  }
+
+  const existing = await prisma.university.findFirst({
+    where: { regionId: region.id, name: { equals: name, mode: "insensitive" } }
+  });
+
+  if (existing) {
+    return { name, region: region.name, success: false, message: "Duplicate university in this region" };
+  }
+
+  await prisma.university.create({ data: { name, regionId: region.id, isActive: true } });
+  return { name, region: region.name, success: true, message: "Added" };
+}
+
+/**
+ * Rows are independent and applied one at a time, deliberately not wrapped in a transaction:
+ * a CSV with three bad rows should still import the good ones and report the rest, rather
+ * than rolling the whole file back.
+ */
+export async function importCsvRows(
+  dataset: "universities" | "regions",
+  rows: string[][]
+): Promise<{ results: CsvImportResult[]; summary: CsvImportSummary }> {
+  const results: CsvImportResult[] = [];
+
+  for (const row of rows) {
+    results.push(
+      dataset === "regions" ? await importRegionRow(row) : await importUniversityRow(row)
+    );
+  }
+
+  const successfulRows = results.filter((r) => r.success).length;
+
+  return {
+    results,
+    summary: {
+      totalRows: results.length,
+      successfulRows,
+      failedRows: results.length - successfulRows
+    }
+  };
 }

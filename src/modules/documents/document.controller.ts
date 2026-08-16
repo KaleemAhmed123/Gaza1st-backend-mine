@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import { createReadStream } from "fs";
 import { asyncHandler, sendSuccess } from "../../shared/http";
 import { uploadDocumentSchema, legalDocumentKeySchema } from "./document.validation";
 import { RoleCode } from "@prisma/client";
@@ -18,7 +19,7 @@ import { getSignedStorageUrl, getObjectStreamFromStorage } from "../../shared/st
 import { pipeline } from "stream";
 import { getAdminScope } from "../../shared/auth-scope";
 
-import { offerDocumentTypes, legalDocumentKeyMap } from "./document.constants";
+import { offerDocumentTypes, legalDocumentKeyMap, localPrivateBucket } from "./document.constants";
 
 export const uploadDocumentHandler = asyncHandler(async (req, res) => {
   if (!req.file) {
@@ -302,15 +303,30 @@ export const previewLegalDocumentHandler = asyncHandler(async (req, res, next) =
   const documentType = resolveLegalDocumentType(req.params.key);
   const { document, absolutePath } = await getPublicLegalDocument(documentType);
 
-  if (document.storageBucket !== "local_private") {
+  // Public policy documents, identical for every reader, replaced a couple of times a year.
+  // Unlike student documents these are safe to cache, and caching them keeps an anonymous
+  // visitor reading the privacy policy from streaming the file out of R2 on every hit.
+  // Uploading a replacement supersedes the row, so the next request resolves a new id.
+  const setHeaders = () => {
+    res.setHeader("Content-Type", document.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${encodeURIComponent(document.originalFilename)}"`
+    );
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("ETag", `"${document.id}"`);
+  };
+
+  if (req.headers["if-none-match"] === `"${document.id}"`) {
+    setHeaders();
+    res.status(304).end();
+    return;
+  }
+
+  if (document.storageBucket !== localPrivateBucket) {
     const s3Stream = await getObjectStreamFromStorage(document.storageKey, document.storageBucket);
     if (s3Stream) {
-      res.setHeader("Content-Type", document.mimeType);
-      res.setHeader(
-        "Content-Disposition",
-        `inline; filename="${encodeURIComponent(document.originalFilename)}"`
-      );
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      setHeaders();
       pipeline(s3Stream, res, (err) => {
         if (err) {
           console.error("Pipeline legal document preview error:", err);
@@ -323,13 +339,14 @@ export const previewLegalDocumentHandler = asyncHandler(async (req, res, next) =
     }
   }
 
-  res.setHeader("Content-Type", document.mimeType);
-  res.setHeader(
-    "Content-Disposition",
-    `inline; filename="${encodeURIComponent(document.originalFilename)}"`
-  );
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-
-  const stream = await fs.readFile(absolutePath!);
-  res.end(stream);
+  setHeaders();
+  // Streamed rather than read into memory: these are up to 10MB and served unauthenticated.
+  pipeline(createReadStream(absolutePath!), res, (err) => {
+    if (err) {
+      console.error("Local legal document preview error:", err);
+      if (!res.headersSent) {
+        next(err);
+      }
+    }
+  });
 });

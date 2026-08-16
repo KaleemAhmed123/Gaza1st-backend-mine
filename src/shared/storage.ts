@@ -18,6 +18,16 @@ if (env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY) {
   });
 }
 
+// Without R2 the functions below silently write uploads to the container filesystem, where
+// the next `docker compose up --build` destroys them and nothing reports it. Fail loudly at
+// boot instead: a typo in an R2 key should stop a deploy, not quietly start losing documents.
+if (env.NODE_ENV === "production" && !s3Client) {
+  throw new Error(
+    "R2 storage is not configured (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY). " +
+      "Refusing to start in production: uploads would be written to local disk and lost on redeploy."
+  );
+}
+
 export async function uploadToStorage(
   buffer: Buffer,
   filename: string,
