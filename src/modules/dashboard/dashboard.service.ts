@@ -311,6 +311,7 @@ export async function getAdminDashboard(userId: string) {
         durationYears: true,
         tuitionFeePerYear: true,
         scholarshipAmount: true,
+        scholarshipInterval: true,
         scholarshipCoversLivingCost: true,
         privateFundingAmount: true,
         privateFundingInterval: true,
@@ -351,6 +352,7 @@ export async function getAdminDashboard(userId: string) {
             scholarshipAmount: offer.scholarshipAmount
               ? decimalToNumber(offer.scholarshipAmount)
               : undefined,
+            scholarshipInterval: offer.scholarshipInterval,
             scholarshipCoversLivingCost: offer.scholarshipCoversLivingCost,
             privateFundingAmount: decimalToNumber(offer.privateFundingAmount),
             privateFundingInterval: offer.privateFundingInterval,
@@ -512,6 +514,7 @@ export async function getMentorDashboard(userId: string) {
             durationYears: true,
             tuitionFeePerYear: true,
             scholarshipAmount: true,
+            scholarshipInterval: true,
             scholarshipCoversLivingCost: true,
             privateFundingAmount: true,
             privateFundingInterval: true,
@@ -546,6 +549,7 @@ export async function getMentorDashboard(userId: string) {
               scholarshipAmount: offer.scholarshipAmount
                 ? decimalToNumber(offer.scholarshipAmount)
                 : undefined,
+              scholarshipInterval: offer.scholarshipInterval,
               scholarshipCoversLivingCost: offer.scholarshipCoversLivingCost,
               privateFundingAmount: decimalToNumber(offer.privateFundingAmount),
               privateFundingInterval: offer.privateFundingInterval,
