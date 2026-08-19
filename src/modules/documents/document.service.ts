@@ -63,6 +63,18 @@ export async function saveDocument(input: {
     }
   }
 
+  // Upload to R2 (or fallback to local) BEFORE opening the DB transaction. R2 is a real
+  // network round-trip with no relationship to MongoDB's ACID guarantees, and Prisma's
+  // interactive transactions have a hard 5s default budget — a transaction that awaits an
+  // external upload in the middle of it is one slow network hop away from expiring
+  // (P2028 "Transaction already closed"), which is exactly what was happening here.
+  const { key, bucket } = await uploadToStorage(
+    input.file.buffer,
+    input.file.originalname,
+    input.file.mimetype,
+    "documents"
+  );
+
   return prisma.$transaction(async (tx) => {
     await tx.document.updateMany({
       where: {
@@ -76,14 +88,6 @@ export async function saveDocument(input: {
         status: DocumentStatus.superseded
       }
     });
-
-    // Upload to R2 (or fallback to local)
-    const { key, bucket } = await uploadToStorage(
-      input.file.buffer,
-      input.file.originalname,
-      input.file.mimetype,
-      "documents"
-    );
 
     const document = await tx.document.create({
       data: {
@@ -315,6 +319,15 @@ export async function saveLegalDocument(input: {
 }) {
   assertLegalDocumentType(input.documentType);
 
+  // Same reasoning as saveDocument above: upload outside the transaction so the R2 round
+  // trip can never eat into Prisma's 5s interactive-transaction budget.
+  const { key, bucket } = await uploadToStorage(
+    input.file.buffer,
+    input.file.originalname,
+    input.file.mimetype,
+    "legal-documents"
+  );
+
   return prisma.$transaction(async (tx) => {
     await tx.document.updateMany({
       where: {
@@ -326,13 +339,6 @@ export async function saveLegalDocument(input: {
         status: DocumentStatus.superseded
       }
     });
-
-    const { key, bucket } = await uploadToStorage(
-      input.file.buffer,
-      input.file.originalname,
-      input.file.mimetype,
-      "legal-documents"
-    );
 
     return tx.document.create({
       data: {
