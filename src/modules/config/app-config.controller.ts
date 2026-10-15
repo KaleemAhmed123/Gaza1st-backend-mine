@@ -1,11 +1,20 @@
 import { Request, Response } from "express";
 import * as appConfigService from "./app-config.service";
+import { invalidateModuleAccessCache } from "../../middleware/module-access.middleware";
 
 // Public configs allowed to be fetched without auth.
 // community_guidelines_url / data_privacy_url used to live here but are now served as
 // actual stored documents via /api/documents/legal/:key/preview — Document.status is the
 // single source of truth for "the current one," not this config table.
-const PUBLIC_CONFIG_KEYS = ["homepage_faqs", "homepage_metrics", "require_admin_approval_tags", "announcement_limits", "enable_student_chat", "homepage_timeline"];
+const PUBLIC_CONFIG_KEYS = [
+  "homepage_faqs",
+  "homepage_metrics",
+  "require_admin_approval_tags",
+  "announcement_limits",
+  "enable_student_chat",
+  "homepage_timeline",
+  "navigation_tab_controls"
+];
 
 export async function getPublicConfigHandler(req: Request, res: Response) {
   try {
@@ -53,6 +62,9 @@ export async function updateConfigHandler(req: Request, res: Response) {
     }
 
     const data = await appConfigService.upsertAppConfig(key, value, updatedBy);
+    if (key === "navigation_tab_controls") {
+      invalidateModuleAccessCache();
+    }
     res.json({ success: true, data });
   } catch (err) {
     console.error(err);

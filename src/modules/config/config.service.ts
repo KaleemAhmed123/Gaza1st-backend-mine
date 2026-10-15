@@ -141,6 +141,7 @@ export async function createUniversity(input: CreateUniversityInput) {
       regionId: input.regionId,
       name: input.name,
       city: input.city,
+      logoUrl: input.logoUrl,
       isLondon: input.isLondon,
       isActive: input.isActive,
       deletedAt: null
