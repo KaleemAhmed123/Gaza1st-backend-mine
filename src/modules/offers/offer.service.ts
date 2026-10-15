@@ -1324,7 +1324,7 @@ export async function assignMentorToOffer(input: {
 
   sendEmailBestEffort({
     to: [mentor.email],
-    subject: "Gaza40 Offer Assigned",
+    subject: "Gaza1st Offer Assigned",
     text: `You have been assigned to review an offer for ${offer.student.fullName}.`,
     html: emailTemplates.notification(
       mentor.fullName,

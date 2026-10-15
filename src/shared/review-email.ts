@@ -17,7 +17,7 @@ export async function notifyMasterAdminsOfProfileSubmission(input: {
 
   sendEmailBestEffort({
     to: admins.map((admin) => admin.email),
-    subject: "Gaza40+ profile submitted for review",
+    subject: "Gaza1st profile submitted for review",
     text: `${input.studentName} (${input.studentEmail}) submitted their profile for review.`
   });
 }
@@ -64,7 +64,7 @@ export async function notifyAdminsOfOfferReview(input: {
 
   sendEmailBestEffort({
     to: recipients,
-    subject: "Gaza40+ offer needs review",
+    subject: "Gaza1st offer needs review",
     text: `${input.studentName} (${input.studentEmail}) ${actionText} for ${input.universityName} - ${input.courseName}.\n\nOffer ID: ${input.offerId}`
   });
 }

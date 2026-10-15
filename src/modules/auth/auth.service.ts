@@ -286,7 +286,7 @@ export async function registerVolunteer(input: RegisterVolunteerInput) {
     if (adminEmails.length > 0) {
       sendEmailBestEffort({
         to: adminEmails,
-        subject: "New Volunteer Signup - Gaza40",
+        subject: "New Volunteer Signup - Gaza1st",
         text: `A new volunteer (${user.fullName}, ${user.email}) has signed up.`,
         html: emailTemplates.adminNewVolunteer(user.fullName, user.email)
       });
@@ -345,7 +345,7 @@ export async function forgotPassword(input: ForgotPasswordInput) {
 
   sendEmailBestEffort({
     to: [user.email],
-    subject: "Reset your Gaza40 password",
+    subject: "Reset your Gaza1st password",
     text: `Hi ${user.fullName},\n\nUse this link to reset your password:\n${buildFrontendUrl("/reset-password", token)}\n\nThis link expires in 1 hour.`,
     html: emailTemplates.forgotPassword(user.fullName, buildFrontendUrl("/reset-password", token))
   });
@@ -407,12 +407,12 @@ export async function sendVerificationEmail(
 
   sendEmailBestEffort({
     to: [user.email],
-    subject: "Verify your Gaza40 email",
+    subject: "Verify your Gaza1st email",
     text: `Hi ${user.fullName},\n\nUse this link to verify your email:\n${buildFrontendUrl(redirectPath, token)}\n\nThis link expires in 24 hours.`,
     html: emailTemplates.notification(
       user.fullName, 
       "Email Verification", 
-      "Please verify your email address to unlock full access to the Gaza40 platform. This link will expire in 24 hours.", 
+      "Please verify your email address to unlock full access to the Gaza1st platform. This link will expire in 24 hours.", 
       buildFrontendUrl(redirectPath, token), 
       "Verify Email"
     )
@@ -463,8 +463,8 @@ export async function verifyEmail(input: VerifyEmailInput) {
     if (welcomeRole) {
       void sendEmailBestEffort({
         to: [verifiedUser.email],
-        subject: "Welcome to Gaza40",
-        text: `Hello ${verifiedUser.fullName}, welcome to Gaza40!`,
+        subject: "Welcome to Gaza1st",
+        text: `Hello ${verifiedUser.fullName}, welcome to Gaza1st!`,
         html: emailTemplates.welcome(verifiedUser.fullName, welcomeRole)
       });
     }

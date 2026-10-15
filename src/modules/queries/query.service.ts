@@ -202,7 +202,7 @@ async function notifyAdmins(queryId: string) {
   if (masterAdminEmails.length > 0) {
     sendEmailBestEffort({
       to: masterAdminEmails,
-      subject: `New Gaza40 query: ${query.title}`,
+      subject: `New Gaza1st query: ${query.title}`,
       text: `${query.student.fullName} raised a query.\n\n${query.message}`,
       html: emailTemplates.notification(
         "Admin",
@@ -217,7 +217,7 @@ async function notifyAdmins(queryId: string) {
   if (regionalAdminEmails.length > 0) {
     sendEmailBestEffort({
       to: regionalAdminEmails,
-      subject: `New Gaza40 query: ${query.title}`,
+      subject: `New Gaza1st query: ${query.title}`,
       text: `${query.student.fullName} raised a query.\n\n${query.message}`,
       html: emailTemplates.notification(
         "Regional Admin",
@@ -297,7 +297,7 @@ async function notifyMasterAdmins(subject: string, body: string, queryId: string
 function notifyAssignee(email: string, title: string) {
   sendEmailBestEffort({
     to: [email],
-    subject: `Gaza40 query assigned: ${title}`,
+    subject: `Gaza1st query assigned: ${title}`,
     text: `A query has been assigned to you: ${title}`,
     html: emailTemplates.notification(
       "Mentor",
@@ -312,7 +312,7 @@ function notifyAssignee(email: string, title: string) {
 function notifyStudent(email: string, title: string) {
   sendEmailBestEffort({
     to: [email],
-    subject: `Gaza40 query updated: ${title}`,
+    subject: `Gaza1st query updated: ${title}`,
     text: `Your query has been updated: ${title}`,
     html: emailTemplates.notification(
       "Student",

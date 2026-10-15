@@ -191,8 +191,8 @@ export async function reviewStudentProfile(input: {
       case ProfileStatus.approved:
         void sendEmailBestEffort({
           to: [profile.user.email],
-          subject: "Your Gaza40+ profile has been approved!",
-          text: `Hi ${profile.user.fullName},\n\nGreat news! Your Gaza40+ onboarding profile has been reviewed and approved.\n\nYou can now log in to your student portal to submit university offers, track your application, and connect with your mentor.\n\nLog in at: ${frontendUrl}\n\nBest regards,\nThe Gaza40+ Team`
+          subject: "Your Gaza1st profile has been approved!",
+          text: `Hi ${profile.user.fullName},\n\nGreat news! Your Gaza1st onboarding profile has been reviewed and approved.\n\nYou can now log in to your student portal to submit university offers, track your application, and connect with your mentor.\n\nLog in at: ${frontendUrl}\n\nBest regards,\nThe Gaza1st Team`
         });
         break;
 
@@ -200,8 +200,8 @@ export async function reviewStudentProfile(input: {
         const reasonSection = input.notes ? `\n\nReason for rejection:\n${input.notes}\n` : "";
         void sendEmailBestEffort({
           to: [profile.user.email],
-          subject: "Update on your Gaza40+ profile review",
-          text: `Hi ${profile.user.fullName},\n\nThank you for submitting your Gaza40+ onboarding profile. Unfortunately, after review, we were unable to approve your profile at this time.${reasonSection}\nIf you have questions or would like to appeal this decision, please contact us at ${adminEmail}.\n\nBest regards,\nThe Gaza40+ Team`
+          subject: "Update on your Gaza1st profile review",
+          text: `Hi ${profile.user.fullName},\n\nThank you for submitting your Gaza1st onboarding profile. Unfortunately, after review, we were unable to approve your profile at this time.${reasonSection}\nIf you have questions or would like to appeal this decision, please contact us at ${adminEmail}.\n\nBest regards,\nThe Gaza1st Team`
         });
         break;
 
@@ -209,8 +209,8 @@ export async function reviewStudentProfile(input: {
         const changesSection = input.notes ? `\n\nRequested changes:\n${input.notes}\n` : "";
         void sendEmailBestEffort({
           to: [profile.user.email],
-          subject: "Changes requested for your Gaza40+ profile",
-          text: `Hi ${profile.user.fullName},\n\nYour Gaza40+ onboarding profile has been reviewed, and we'd like you to make a few updates before it can be approved.${changesSection}\nPlease log in to your student portal, update your profile, and resubmit it for review.\n\nLog in at: ${frontendUrl}\n\nBest regards,\nThe Gaza40+ Team`
+          subject: "Changes requested for your Gaza1st profile",
+          text: `Hi ${profile.user.fullName},\n\nYour Gaza1st onboarding profile has been reviewed, and we'd like you to make a few updates before it can be approved.${changesSection}\nPlease log in to your student portal, update your profile, and resubmit it for review.\n\nLog in at: ${frontendUrl}\n\nBest regards,\nThe Gaza1st Team`
         });
         break;
     }
