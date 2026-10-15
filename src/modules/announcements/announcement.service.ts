@@ -7,6 +7,7 @@ import type {
   CreateAnnouncementInput,
   ListAdminAnnouncementsQuery,
   ListAnnouncementsQuery,
+  ListPublicAnnouncementsQuery,
   UpdateAnnouncementInput
 } from "./announcement.validation";
 
@@ -16,6 +17,29 @@ const announcementInclude = {
       id: true,
       fullName: true,
       email: true
+    }
+  },
+  university: {
+    select: {
+      id: true,
+      name: true,
+      city: true,
+      logoUrl: true,
+      regionId: true,
+      region: {
+        select: {
+          id: true,
+          name: true,
+          code: true
+        }
+      }
+    }
+  },
+  region: {
+    select: {
+      id: true,
+      name: true,
+      code: true
     }
   }
 };
@@ -29,7 +53,8 @@ const VALID_ANNOUNCEMENT_CATEGORIES = new Set([
   "webinars",
   "general",
   "update",
-  "alert"
+  "alert",
+  "university_process"
 ]);
 
 async function ensureCategory(category?: string) {
@@ -177,11 +202,122 @@ export async function listPublishedAnnouncements(query: ListAnnouncementsQuery, 
       deletedAt: null,
       isPublished: true,
       ...(query.category ? { category: query.category } : {}),
+      ...(query.universityId ? { universityId: query.universityId } : {}),
+      ...(query.regionId ? { regionId: query.regionId } : {}),
+      ...(query.isPublic !== undefined ? { isPublic: query.isPublic } : {}),
       ...regionFilter
     },
     include: announcementInclude,
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
   });
+}
+
+export async function listPublicAnnouncements(query: ListPublicAnnouncementsQuery) {
+  const now = new Date();
+  const fourteenDaysLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+  let deadlineCondition: any = undefined;
+  if (query.deadlineStatus === 'closing_soon') {
+    deadlineCondition = {
+      deadline: {
+        gte: now,
+        lte: fourteenDaysLater
+      }
+    };
+  } else if (query.deadlineStatus === 'open') {
+    deadlineCondition = {
+      OR: [
+        { isRollingDeadline: true },
+        { deadline: { gte: now } },
+        { deadline: null, isRollingDeadline: false }
+      ]
+    };
+  } else if (query.deadlineStatus === 'future') {
+    deadlineCondition = {
+      deadline: { gt: fourteenDaysLater }
+    };
+  } else if (query.deadlineStatus === 'rolling') {
+    deadlineCondition = {
+      isRollingDeadline: true
+    };
+  } else if (query.deadlineStatus === 'closed') {
+    deadlineCondition = {
+      OR: [
+        { scholarshipStatus: 'closed' },
+        {
+          AND: [
+            { isRollingDeadline: false },
+            { deadline: { lt: now } }
+          ]
+        }
+      ]
+    };
+  }
+
+  return prisma.announcement.findMany({
+    where: {
+      deletedAt: null,
+      isPublished: true,
+      isPublic: true,
+      ...(query.category ? { category: query.category } : {}),
+      ...(query.universityId ? { universityId: query.universityId } : {}),
+      ...(query.regionId ? { regionId: query.regionId } : {}),
+      ...(query.degreeLevel ? { degreeLevel: query.degreeLevel } : {}),
+      ...(query.fundingType ? { fundingType: query.fundingType } : {}),
+      ...(query.subject ? { subject: query.subject } : {}),
+      ...(query.scholarshipStatus ? { scholarshipStatus: query.scholarshipStatus } : {}),
+      ...(deadlineCondition ? deadlineCondition : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { title: { contains: query.search, mode: "insensitive" } },
+              { body: { contains: query.search, mode: "insensitive" } },
+              { provider: { contains: query.search, mode: "insensitive" } },
+              { university: { name: { contains: query.search, mode: "insensitive" } } }
+            ]
+          }
+        : {})
+    },
+    include: announcementInclude,
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
+  });
+}
+
+export async function getPublicAnnouncement(id: string) {
+  if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+    throw new ApiError(400, "Invalid announcement ID format");
+  }
+  const announcement = await prisma.announcement.findFirst({
+    where: { id, deletedAt: null, isPublished: true, isPublic: true },
+    include: announcementInclude
+  });
+
+  if (!announcement) {
+    throw new ApiError(404, "Announcement not found or not publicly accessible");
+  }
+
+  return announcement;
+}
+
+export async function getPublicAnnouncementGuideForDownload(id: string) {
+  const announcement = await getPublicAnnouncement(id);
+  const key = (announcement as any).guideStorageKey as string | null;
+  const bucket = (announcement as any).guideStorageBucket as string | null;
+  const fileName = (announcement as any).guideFileName as string | null;
+
+  if (!key || !bucket) {
+    throw new ApiError(404, "This announcement does not have a guide attached");
+  }
+
+  if (bucket === "local_private") {
+    return { isLocal: true as const, key, fileName: fileName || "guide.pdf" };
+  }
+
+  const url = await getSignedStorageUrl(key, bucket, 3600, fileName || undefined);
+  if (!url) {
+    throw new ApiError(503, "Could not generate the guide download link right now. Please try again.");
+  }
+  return { isLocal: false as const, url, fileName: fileName || "guide.pdf" };
 }
 
 export async function getPublishedAnnouncement(id: string, user: { id: string; roles: string[] }) {
@@ -226,6 +362,15 @@ export async function listAdminAnnouncements(
   }
   if (query.isPublished !== undefined) {
     filter.isPublished = query.isPublished;
+  }
+  if (query.isPublic !== undefined) {
+    filter.isPublic = query.isPublic;
+  }
+  if (query.universityId) {
+    filter.universityId = query.universityId;
+  }
+  if (query.regionId) {
+    filter.regionId = query.regionId;
   }
 
   return prisma.announcement.findMany({
@@ -284,11 +429,23 @@ export async function createAnnouncement(input: {
     body: input.data.body,
     category: input.data.category,
     regionId: input.data.regionId || null,
+    universityId: input.data.universityId || null,
+    isPublic: Boolean(input.data.isPublic),
     createdByUserId: input.user.id,
     isPublished,
     publishedAt: isPublished ? new Date() : undefined,
     showApplyButton: (input.data as any).showApplyButton ?? false,
     applyLink: (input.data as any).applyLink || null,
+    degreeLevel: input.data.degreeLevel || null,
+    subject: input.data.subject || null,
+    fundingType: input.data.fundingType || null,
+    scholarshipStatus: input.data.scholarshipStatus || 'open',
+    deadline: input.data.deadline || null,
+    isRollingDeadline: Boolean(input.data.isRollingDeadline),
+    provider: input.data.provider || null,
+    officialUrl: input.data.officialUrl || null,
+    duration: input.data.duration || null,
+    scholarshipDetails: input.data.scholarshipDetails || undefined,
     deletedAt: null
   };
   const announcement = await (prisma.announcement as any).create({
@@ -346,10 +503,22 @@ export async function updateAnnouncement(input: {
     body: input.data.body,
     category: input.data.category,
     regionId: input.data.regionId !== undefined ? (input.data.regionId || null) : undefined,
+    universityId: input.data.universityId !== undefined ? (input.data.universityId || null) : undefined,
+    isPublic: input.data.isPublic !== undefined ? Boolean(input.data.isPublic) : undefined,
     isPublished: input.data.isPublished,
     publishedAt: publishNow ? new Date() : unpublishNow ? null : undefined,
     showApplyButton: (input.data as any).showApplyButton,
-    applyLink: (input.data as any).applyLink
+    applyLink: (input.data as any).applyLink,
+    degreeLevel: input.data.degreeLevel !== undefined ? (input.data.degreeLevel || null) : undefined,
+    subject: input.data.subject !== undefined ? (input.data.subject || null) : undefined,
+    fundingType: input.data.fundingType !== undefined ? (input.data.fundingType || null) : undefined,
+    scholarshipStatus: input.data.scholarshipStatus !== undefined ? (input.data.scholarshipStatus || 'open') : undefined,
+    deadline: input.data.deadline !== undefined ? (input.data.deadline || null) : undefined,
+    isRollingDeadline: input.data.isRollingDeadline !== undefined ? Boolean(input.data.isRollingDeadline) : undefined,
+    provider: input.data.provider !== undefined ? (input.data.provider || null) : undefined,
+    officialUrl: input.data.officialUrl !== undefined ? (input.data.officialUrl || null) : undefined,
+    duration: input.data.duration !== undefined ? (input.data.duration || null) : undefined,
+    scholarshipDetails: input.data.scholarshipDetails !== undefined ? input.data.scholarshipDetails : undefined
   };
   const updatedAnnouncement = await (prisma.announcement as any).update({
     where: { id: announcement.id },
