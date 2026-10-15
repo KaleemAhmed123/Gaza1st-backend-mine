@@ -1,6 +1,7 @@
 import { RoleCode } from "@prisma/client";
 import { Router } from "express";
 import { requireRole, requireAuth } from "../../middleware/auth.middleware";
+import { requireModuleEnabled } from "../../middleware/module-access.middleware";
 import { uploadSingleDocument } from "../documents/upload.middleware";
 import {
   createAnnouncementHandler,
@@ -9,6 +10,9 @@ import {
   getPublishedAnnouncementHandler,
   listAdminAnnouncementsHandler,
   listPublishedAnnouncementsHandler,
+  listPublicAnnouncementsHandler,
+  getPublicAnnouncementHandler,
+  downloadPublicAnnouncementGuideHandler,
   updateAnnouncementHandler,
   uploadAnnouncementGuideHandler,
   removeAnnouncementGuideHandler,
@@ -18,12 +22,18 @@ import {
 export const announcementRouter = Router();
 export const adminAnnouncementRouter = Router();
 
-announcementRouter.use(requireAuth);
+// Public endpoints (no authentication required)
+announcementRouter.get("/public", listPublicAnnouncementsHandler);
+announcementRouter.get("/public/:id/guide", downloadPublicAnnouncementGuideHandler);
+announcementRouter.get("/public/:id", getPublicAnnouncementHandler);
+
+// Internal published endpoints (authentication required)
+announcementRouter.use(requireAuth, requireModuleEnabled("announcements"));
 announcementRouter.get("/", listPublishedAnnouncementsHandler);
 announcementRouter.get("/:id/guide", downloadAnnouncementGuideHandler);
 announcementRouter.get("/:id", getPublishedAnnouncementHandler);
 
-adminAnnouncementRouter.use(requireAuth, requireRole([RoleCode.master_admin, RoleCode.regional_admin]));
+adminAnnouncementRouter.use(requireAuth, requireModuleEnabled("announcements"), requireRole([RoleCode.master_admin, RoleCode.regional_admin]));
 adminAnnouncementRouter.get("/", listAdminAnnouncementsHandler);
 adminAnnouncementRouter.post("/", createAnnouncementHandler);
 adminAnnouncementRouter.get("/:id", getAdminAnnouncementHandler);
