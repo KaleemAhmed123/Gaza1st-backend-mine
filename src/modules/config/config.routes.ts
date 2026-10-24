@@ -11,6 +11,7 @@ import {
   deactivateRegionHandler,
   deactivateUniversityHandler,
   getUniversityLogoHandler,
+  listAllConfigOptionsAdminHandler,
   listAllRegionsAdminHandler,
   listAllUniversitiesAdminHandler,
   listConfigOptionsHandler,
@@ -64,6 +65,7 @@ configRouter.get("/roles", (req, res) => {
 adminConfigRouter.use(requireAuth, requireRole([RoleCode.master_admin]));
 adminConfigRouter.get("/regions", listAllRegionsAdminHandler);
 adminConfigRouter.get("/universities", listAllUniversitiesAdminHandler);
+adminConfigRouter.get("/options", listAllConfigOptionsAdminHandler);
 adminConfigRouter.post("/universities/upload-logo", uploadLogo, uploadUniversityLogoHandler);
 adminConfigRouter.post("/options", createConfigOptionHandler);
 adminConfigRouter.patch("/options/:id", updateConfigOptionHandler);
