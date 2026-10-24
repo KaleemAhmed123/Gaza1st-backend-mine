@@ -85,13 +85,13 @@ const baseTemplate = (content: string, title: string) => `
 <body>
   <div class="container">
     <div class="header">
-      <img src="cid:gaza40logo" alt="Gaza40 Logo" style="max-height: 60px; display: block; margin: 0 auto;" />
+      <img src="cid:gaza40logo" alt="Gaza1st Logo" style="max-height: 60px; display: block; margin: 0 auto;" />
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      <p>&copy; ${new Date().getFullYear()} Gaza40. All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} Gaza1st. All rights reserved.</p>
       <p>This is an automated message, please do not reply to this email.</p>
     </div>
   </div>
@@ -104,17 +104,17 @@ export const emailTemplates = {
   welcome: (name: string, role: 'student' | 'mentor') => {
     const roleText = role === 'student' ? 'Student' : 'Volunteer';
     const content = `
-      <h2>Welcome to Gaza40!</h2>
+      <h2>Welcome to Gaza1st!</h2>
       <p>Hello ${name},</p>
-      <p>Your ${roleText} account has been successfully created. We are thrilled to have you join the Gaza40 community.</p>
+      <p>Your ${roleText} account has been successfully created. We are thrilled to have you join the Gaza1st community.</p>
       <p>You can now log in to the portal using your email and password to start exploring all the features available to you.</p>
       <center>
         <a href="${env.FRONTEND_URL}/login" class="btn">Log In Now</a>
       </center>
       <p>If you have any questions, please reach out to our support team.</p>
-      <p>Best regards,<br/>The Gaza40 Team</p>
+      <p>Best regards,<br/>The Gaza1st Team</p>
     `;
-    return baseTemplate(content, "Welcome to Gaza40");
+    return baseTemplate(content, "Welcome to Gaza1st");
   },
 
   // Password Reset Email
@@ -122,14 +122,14 @@ export const emailTemplates = {
     const content = `
       <h2>Password Reset Request</h2>
       <p>Hello ${name},</p>
-      <p>We received a request to reset the password for your Gaza40 account.</p>
+      <p>We received a request to reset the password for your Gaza1st account.</p>
       <p>Click the button below to set a new password. This link will expire in 1 hour.</p>
       <center>
         <a href="${resetUrl}" class="btn">Reset Password</a>
       </center>
       <p>If you did not request a password reset, you can safely ignore this email.</p>
     `;
-    return baseTemplate(content, "Password Reset - Gaza40");
+    return baseTemplate(content, "Password Reset - Gaza1st");
   },
 
   // Generic Notification (Group Assignment, Queries, Offers)
@@ -157,7 +157,7 @@ export const emailTemplates = {
     const content = `
       <h2>New Volunteer Signup</h2>
       <p>Hello Admin,</p>
-      <p>A new volunteer has signed up on the Gaza40 platform.</p>
+      <p>A new volunteer has signed up on the Gaza1st platform.</p>
       <table class="data-table">
         <tr>
           <td>Name:</td>
@@ -172,7 +172,7 @@ export const emailTemplates = {
         <a href="${env.FRONTEND_URL}/admin/volunteers" class="btn">View Volunteers</a>
       </center>
     `;
-    return baseTemplate(content, "New Volunteer Signup - Gaza40");
+    return baseTemplate(content, "New Volunteer Signup - Gaza1st");
   },
 
   // Regional Admin Invite
@@ -203,7 +203,7 @@ export const emailTemplates = {
     const content = `
       <h2>You've Been Invited as a Regional Admin</h2>
       <p>Hello ${name},</p>
-      <p>A Master Administrator has created a <strong>Regional Admin</strong> account for you on the <strong>Gaza40</strong> platform${regionName ? ` for the <strong>${regionName}</strong> region` : ''}.</p>
+      <p>A Master Administrator has created a <strong>Regional Admin</strong> account for you on the <strong>Gaza1st</strong> platform${regionName ? ` for the <strong>${regionName}</strong> region` : ''}.</p>
       
       <p>As a Regional Admin, you will be able to:</p>
       <ul style="color: ${TEMPLATE_COLORS.textLight}; line-height: 2;">
@@ -223,6 +223,6 @@ export const emailTemplates = {
       
       <p style="margin-top: 20px; font-size: 12px; color: ${TEMPLATE_COLORS.textLight};">If you did not expect this email or believe it was sent in error, please contact the Master Administrator.</p>
     `;
-    return baseTemplate(content, "Regional Admin Invite - Gaza40");
+    return baseTemplate(content, "Regional Admin Invite - Gaza1st");
   }
 };

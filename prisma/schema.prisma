@@ -258,6 +258,7 @@ model University {
   regionId  String    @db.ObjectId
   name      String
   city      String?
+  logoUrl   String?
   isLondon  Boolean   @default(false)
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
@@ -265,6 +266,7 @@ model University {
   deletedAt DateTime?
   region    Region    @relation(fields: [regionId], references: [id])
   offers    Offer[]
+  announcements Announcement[]
 
   @@unique([regionId, name])
   @@index([regionId])
@@ -442,6 +444,9 @@ model Announcement {
   category        String?
   regionId        String?   @db.ObjectId
   region          Region?   @relation(fields: [regionId], references: [id])
+  universityId    String?   @db.ObjectId
+  university      University? @relation(fields: [universityId], references: [id])
+  isPublic        Boolean   @default(false)
   createdByUserId String    @db.ObjectId
   isPublished     Boolean   @default(false)
   showApplyButton Boolean   @default(false)
@@ -455,10 +460,34 @@ model Announcement {
   deletedAt       DateTime?
   createdBy       User      @relation(fields: [createdByUserId], references: [id])
 
+  // --- Scaled Scholarship PRD Fields (populated when category == 'scholarships') ---
+  degreeLevel        String?   // 'undergraduate' | 'masters' | 'phd' | 'research' | 'foundation'
+  subject            String?   // 'engineering' | 'medicine' | 'computer_science' | 'physics' | 'business' | 'humanities' | 'social_sciences' | 'arts' | 'other'
+  fundingType        String?   // 'fully_funded' | 'partially_funded' | 'tuition_only' | 'living_costs' | 'funding_exhausted'
+  scholarshipStatus  String?   @default("open") // 'open' | 'opening_soon' | 'closed' | 'rolling' | 'paused'
+  deadline           DateTime?
+  isRollingDeadline  Boolean   @default(false)
+  provider           String?   // Provider / Organisation name
+  officialUrl        String?   // Link to official university / scholarship provider
+  duration           String?   // e.g. "1 year", "3-4 years"
+  
+  // Structured breakdown details (JSON)
+  // - fundingItems: { tuition, accommodation, livingAllowance, flights, visa, ihs, applicationFee, travelSupport, otherExpenses }
+  // - eligibility: { nationality, location, academicRequirements, englishRequirements, degreeRequirements, otherRequirements }
+  // - application: { documentsRequired, applicationProcess, universityAppRequired, separateAppRequired }
+  scholarshipDetails Json?
+
   @@index([createdByUserId])
   @@index([isPublished])
+  @@index([isPublic])
   @@index([category])
   @@index([regionId])
+  @@index([universityId])
+  @@index([degreeLevel])
+  @@index([fundingType])
+  @@index([subject])
+  @@index([scholarshipStatus])
+  @@index([deadline])
 }
 
 model AppConfig {

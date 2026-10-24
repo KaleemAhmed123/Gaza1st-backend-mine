@@ -1,6 +1,8 @@
 import { RoleCode } from "@prisma/client";
 import { Router } from "express";
 import { requireRole, requireAuth } from "../../middleware/auth.middleware";
+import multer from "multer";
+import { ApiError } from "../../shared/http";
 import {
   createConfigOptionHandler,
   createRegionHandler,
@@ -8,6 +10,8 @@ import {
   deactivateConfigOptionHandler,
   deactivateRegionHandler,
   deactivateUniversityHandler,
+  getUniversityLogoHandler,
+  listAllConfigOptionsAdminHandler,
   listAllRegionsAdminHandler,
   listAllUniversitiesAdminHandler,
   listConfigOptionsHandler,
@@ -15,7 +19,8 @@ import {
   listUniversitiesHandler,
   updateConfigOptionHandler,
   updateRegionHandler,
-  updateUniversityHandler
+  updateUniversityHandler,
+  uploadUniversityLogoHandler
 } from "./config.controller";
 import {
   getConfigHandler,
@@ -24,11 +29,33 @@ import {
   updateConfigHandler
 } from "./app-config.controller";
 
+const uploadLogo = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  },
+  fileFilter: (_req, file, callback) => {
+    const allowed = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/svg+xml",
+      "image/gif"
+    ];
+    if (allowed.includes(file.mimetype.toLowerCase())) {
+      callback(null, true);
+    } else {
+      callback(new ApiError(400, "Only image files (PNG, JPG, SVG, WebP, GIF) are allowed for university logos"));
+    }
+  }
+}).fields([{ name: "file", maxCount: 1 }, { name: "logo", maxCount: 1 }]);
+
 export const configRouter = Router();
 export const adminConfigRouter = Router();
 
 configRouter.get("/regions", listRegionsHandler);
 configRouter.get("/universities", listUniversitiesHandler);
+configRouter.get("/universities/logo/:filename", getUniversityLogoHandler);
 configRouter.get("/options", listConfigOptionsHandler);
 configRouter.get("/app/public/:key", getPublicConfigHandler);
 configRouter.get("/roles", (req, res) => {
@@ -38,6 +65,8 @@ configRouter.get("/roles", (req, res) => {
 adminConfigRouter.use(requireAuth, requireRole([RoleCode.master_admin]));
 adminConfigRouter.get("/regions", listAllRegionsAdminHandler);
 adminConfigRouter.get("/universities", listAllUniversitiesAdminHandler);
+adminConfigRouter.get("/options", listAllConfigOptionsAdminHandler);
+adminConfigRouter.post("/universities/upload-logo", uploadLogo, uploadUniversityLogoHandler);
 adminConfigRouter.post("/options", createConfigOptionHandler);
 adminConfigRouter.patch("/options/:id", updateConfigOptionHandler);
 adminConfigRouter.delete("/options/:id", deactivateConfigOptionHandler);

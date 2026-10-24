@@ -41,7 +41,7 @@ export async function createRegionalAdmin(input: CreateRegionalAdminInput, creat
     // Send the welcome email with credentials
     sendEmailBestEffort({
       to: [user.email],
-      subject: "Welcome to Gaza40 - Profile Reviewer Account Created",
+      subject: "Welcome to Gaza1st - Profile Reviewer Account Created",
       text: `Hello ${user.fullName},\n\nYour Profile Reviewer account has been created.\nEmail: ${user.email}\nPassword: ${input.password}\n\nPlease log in and change your password.`,
       html: emailTemplates.regionalAdminInvite(user.fullName, user.email, input.password, "All Regions (Profile Reviewer)")
     });
@@ -105,7 +105,7 @@ export async function createRegionalAdmin(input: CreateRegionalAdminInput, creat
     // Send the welcome email with credentials
     sendEmailBestEffort({
       to: [user.email],
-      subject: "Welcome to Gaza40 - Regional Admin Account Created",
+      subject: "Welcome to Gaza1st - Regional Admin Account Created",
       text: `Hello ${user.fullName},\n\nYour Regional Admin account has been created.\nEmail: ${user.email}\nPassword: ${input.password}\nRegion: ${region.name}\n\nPlease log in and change your password.`,
       html: emailTemplates.regionalAdminInvite(user.fullName, user.email, input.password, region.name)
     });
@@ -148,7 +148,7 @@ export async function resendRegionalAdminInvite(id: string) {
 
   sendEmailBestEffort({
     to: [user.email],
-    subject: `Welcome to Gaza40 - ${isReviewer ? 'Profile Reviewer' : 'Regional Admin'} Account Credentials`,
+    subject: `Welcome to Gaza1st - ${isReviewer ? 'Profile Reviewer' : 'Regional Admin'} Account Credentials`,
     text: `Hello ${user.fullName},\n\nYour account details.\nEmail: ${user.email}\nPassword: ${plainPassword || 'Contact Master Admin'}\nRegion: ${regionName}\n\nPlease log in and change your password.`,
     html: emailTemplates.regionalAdminInvite(
       user.fullName,

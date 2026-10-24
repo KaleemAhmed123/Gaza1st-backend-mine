@@ -7,6 +7,9 @@ import {
   getPublishedAnnouncement,
   listAdminAnnouncements,
   listPublishedAnnouncements,
+  listPublicAnnouncements,
+  getPublicAnnouncement,
+  getPublicAnnouncementGuideForDownload,
   updateAnnouncement,
   setAnnouncementGuide,
   removeAnnouncementGuide,
@@ -16,8 +19,29 @@ import {
   createAnnouncementSchema,
   listAdminAnnouncementsQuerySchema,
   listAnnouncementsQuerySchema,
+  listPublicAnnouncementsQuerySchema,
   updateAnnouncementSchema
 } from "./announcement.validation";
+
+export const listPublicAnnouncementsHandler = asyncHandler(async (req, res) => {
+  const query = listPublicAnnouncementsQuerySchema.parse(req.query);
+  const announcements = await listPublicAnnouncements(query);
+  sendSuccess(res, { announcements });
+});
+
+export const getPublicAnnouncementHandler = asyncHandler(async (req, res) => {
+  const announcement = await getPublicAnnouncement(req.params.id);
+  sendSuccess(res, { announcement });
+});
+
+export const downloadPublicAnnouncementGuideHandler = asyncHandler(async (req, res) => {
+  const guide = await getPublicAnnouncementGuideForDownload(req.params.id);
+  if (guide.isLocal) {
+    res.download(path.join(process.cwd(), guide.key), guide.fileName);
+    return;
+  }
+  res.redirect(guide.url);
+});
 
 export const listPublishedAnnouncementsHandler = asyncHandler(async (req, res) => {
   const query = listAnnouncementsQuerySchema.parse(req.query);

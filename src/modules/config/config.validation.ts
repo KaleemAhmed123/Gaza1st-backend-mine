@@ -34,6 +34,7 @@ export const createUniversitySchema = z.object({
   regionId: objectIdSchema,
   name: z.string().min(1),
   city: z.string().min(1).optional(),
+  logoUrl: z.string().optional(),
   isLondon: z.boolean().optional(),
   isActive: z.boolean().optional()
 });

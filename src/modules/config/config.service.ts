@@ -41,6 +41,13 @@ export async function listConfigOptions(groupKey: string) {
   });
 }
 
+export async function listAllConfigOptions(groupKey: string) {
+  return prisma.configOption.findMany({
+    where: { groupKey, deletedAt: null },
+    orderBy: [{ sortOrder: "asc" }, { labelEn: "asc" }]
+  });
+}
+
 export async function listUniversities(query: ListUniversitiesQuery) {
   return prisma.university.findMany({
     where: {
@@ -69,14 +76,32 @@ export async function listAllUniversities(query: ListUniversitiesQuery) {
 }
 
 export async function createConfigOption(input: CreateConfigOptionInput) {
+  const existing = await prisma.configOption.findFirst({
+    where: { groupKey: input.groupKey, value: input.value }
+  });
+
+  if (existing) {
+    return prisma.configOption.update({
+      where: { id: existing.id },
+      data: {
+        labelEn: input.labelEn,
+        labelAr: input.labelAr,
+        sortOrder: input.sortOrder ?? existing.sortOrder,
+        isActive: input.isActive ?? true,
+        metadata: input.metadata as Prisma.InputJsonValue | undefined,
+        deletedAt: null
+      }
+    });
+  }
+
   return prisma.configOption.create({
     data: {
       groupKey: input.groupKey,
       value: input.value,
       labelEn: input.labelEn,
       labelAr: input.labelAr,
-      sortOrder: input.sortOrder,
-      isActive: input.isActive,
+      sortOrder: input.sortOrder ?? 0,
+      isActive: input.isActive ?? true,
       metadata: input.metadata as Prisma.InputJsonValue | undefined,
       deletedAt: null
     }
@@ -141,6 +166,7 @@ export async function createUniversity(input: CreateUniversityInput) {
       regionId: input.regionId,
       name: input.name,
       city: input.city,
+      logoUrl: input.logoUrl,
       isLondon: input.isLondon,
       isActive: input.isActive,
       deletedAt: null
