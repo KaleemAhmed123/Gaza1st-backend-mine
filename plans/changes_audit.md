@@ -901,3 +901,49 @@ before/after via live requests (see Verification below).
   - Full CSV export round-trip (`students` dataset): job created → completed → real R2 signed URL
     generated → file downloaded back and content verified — exercises the entire rewritten upload path
     end-to-end against production storage, not a mock.
+
+## 2026-11-02 - Public Site Content CMS (About, Impact, Stories, Media)
+
+### Files Added
+
+- `src/modules/site-content/` (routes, controllers, services, validation per feature)
+  - `media.*`: image upload (magic-byte check, JPEG/PNG/WebP only, `sharp` re-encode strips metadata and caps size), public serving by DB id, admin preview of private assets.
+  - `impact.*`: impact statistics CRUD, reorder, soft delete; public list.
+  - `about.*`: block-based About page with draft and published copies; zod discriminated-union blocks; starter scaffold created lazily on first admin read.
+  - `stories.*`: student stories with consent status, separate photo consent, publish/unpublish; public whitelist DTO.
+  - `html-sanitizer.ts`: allowlist sanitiser applied on write to all rich text.
+  - `request-actor.ts`: shared audit actor extraction.
+
+### Files Changed
+
+- `prisma/schema.prisma`: added `StoryConsentStatus`, `MediaAsset`, `ImpactStat`, `SitePage`, `StudentStory` (new collections only; apply with `pnpm prisma:push`).
+- `src/app.ts`: mounted `/api/public` and `/api/admin/site`.
+- `src/modules/config/app-config.controller.ts`: added `enable_public_stories` to the public config keys.
+- `scripts/update-postman-collection.ps1`: new folder `17 Site Content (CMS)` and variables `storyId`, `mediaId`, `impactStatId`.
+- `package.json`: added `sharp`, `sanitize-html`, `@types/sanitize-html`.
+
+### Behaviour
+
+- Admin routes: `master_admin` only; every mutation writes an audit log (no story text in metadata).
+- A story is public only when published AND consent is `granted`; leaving `granted` unpublishes it and makes its photo private immediately. The photo is returned only with photo consent.
+- Granting consent requires a note recording where the signed consent is held.
+
+### Verification
+
+- `pnpm lint` (tsc --noEmit): clean.
+- `prisma db push` applied (additive: 4 new collections and their indexes).
+- Live smoke test (47 checks, all passing) against a local server with the seeded development Master Admin: impact CRUD/reorder/date and public DTO; upload rejects SVG, renamed non-image, missing alt and >5MB; private story photo 404 publicly but previewable by admin; publish without consent -> 409; consent grant needs a note; photo hidden without photo consent and served (image/png, CORP cross-origin) with it; withdrawing consent removes the story and its photo immediately and blocks republish; public story DTO has no internal fields; audit rows written without story text; About validation (4 core areas, unique ids, unknown media), HTML sanitised, draft does not change public, publish bumps version.
+- Bug found and fixed by the test: on MongoDB, Prisma `deletedAt: null` does not match a document where the field is missing, so creates now write `deletedAt: null` explicitly (see `scripts/backfill-mongo-deleted-at.ts` for the same issue elsewhere).
+- Not covered: EXIF stripping on a real photo with GPS data (re-encoding with sharp drops metadata, not asserted by a test).
+- Test data was removed afterwards. The About page was published once with the starter scaffold; it is not visible anywhere until the frontend page exists.
+
+## 2026-11-02 - Retire homepage_metrics; Platform Settings regrouped
+
+- `src/modules/config/app-config.controller.ts`: removed `homepage_metrics` from the public config keys. Nothing reads it any more (home and About pages use `ImpactStat` via `/api/public/impact`). Existing stored data is untouched.
+- Frontend (`Gaza40Plus`): removed the "Global System Metrics" card and its load/save from `HomePageConfigsTab.tsx`; deleted the unused `FaqsTab.tsx`; `admin/settings/page.tsx` is now driven by one grouped list (Public Website, Lists & Reference Data, Platform Controls). No tab internals changed, so no existing setting was removed.
+
+## 2026-11-02 - Retire legacy query tags; split Platform Configs / Miscellaneous
+
+- Removed `require_admin_approval_tags` from the public config keys. The legacy "Support Query Tags" list (`query_category`) and its approval checkbox were read only by their own settings card; query routing uses `query_type`. Existing stored rows are left untouched; `scripts/backfill-query-types.ts` is kept as the historical migration.
+- `documentation/api.md` and `documentation/database-schema.md`: `query_category` replaced with `query_type`.
+- Frontend (`Gaza40Plus`): the two catch-all settings tabs were replaced by single-purpose tabs with the same behaviour and API calls: Query Types, Announcement Categories, Limits & Chat, Legal Documents. Deleted `SystemConfigsTab.tsx` and `MiscConfigsTab.tsx`. Each tab has its own load and Save, and Save is disabled until something changed (list tabs).
