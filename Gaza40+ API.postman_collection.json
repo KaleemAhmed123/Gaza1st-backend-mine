@@ -2,7 +2,7 @@
     "info":  {
                  "_postman_id":  "e2420941-6fdd-48bd-9cff-6266c9a300f6",
                  "name":  "Gaza40+ API",
-                 "description":  "# Gaza40+ API Full Testing Story\r\n\r\nRun the collection in this order to test the complete backend flow. This is written as a story, not as feature notes.\r\n\r\n## Setup Once\r\n\r\n1. Start API: `corepack pnpm dev`\r\n2. Seed DB if needed:\r\n   - `corepack pnpm prisma:seed`\r\n   - `corepack pnpm prisma:seed:admin`\r\n   - `corepack pnpm prisma:seed:regional-admin`\r\n3. Set collection variable `baseUrl` to `http://localhost:4000`.\r\n\r\n## Story 1: Basic Server Check\r\n\r\n1. `00 Health / Health`\r\n2. `00 Health / Health DB`\r\n\r\n## Story 2: Create The Main Test Users\r\n\r\n1. `01 Auth / Register Student`\r\n   - Captures `studentCookies`.\r\n   - If student already exists, run `01 Auth / Login Student`.\r\n\r\n2. `01 Auth / Register Volunteer`\r\n   - Captures `volunteerCookies`.\r\n   - If volunteer already exists, run `01 Auth / Login Volunteer`.\r\n\r\n3. `01 Auth / Login Master Admin`\r\n   - Captures `adminCookies`.\r\n\r\n4. `01 Auth / Login Regional Admin`\r\n   - Captures `regionalCookies`.\r\n\r\n5. Optional check: `01 Auth / Get Current User`\n   - Auth responses return an enriched user object for frontend session bootstrapping: display fields, roles, account status, email verification status, and role-specific profile summaries.\n\r\n## Story 3: Student Completes And Submits Profile\r\n\r\n1. `04 Student Profile / Get My Profile`\r\n\r\n2. `04 Student Profile / Update My Profile`\r\n\r\n3. Optional document testing:\r\n   - `03 Documents / Upload Document`\r\n   - Upload `consent_form`.\r\n   - Run it again and upload `national_id`.\r\n\r\n4. `04 Student Profile / Submit My Profile`\n   - Required profile documents must be uploaded before this step.\n\r\n5. `04 Student Profile / Get My Profile`\r\n   - Confirm status is `under_review`.\r\n\r\n## Story 4: Master Admin Reviews Student Profile\r\n\r\n1. `06 Admin Student Profile Review / List Student Profiles`\r\n   - Find the submitted profile.\r\n   - Copy profile id into the profile review request path.\r\n\r\n2. `06 Admin Student Profile Review / Get Student Profile`\r\n\r\n3. `06 Admin Student Profile Review / Review Student Profile`\r\n   - Use body `{ \"status\": \"approved\", \"notes\": \"Profile reviewed and approved.\" }`.\r\n\r\n4. Student can now create offers.\r\n\r\n## Story 5: Student Creates And Submits Offer\r\n\r\n1. `05 Student Offers / Create Offer`\r\n   - Copy returned offer id into collection variable `offerId`.\r\n\r\n2. `05 Student Offers / Get Offer`\r\n\r\n3. `03 Documents / Upload Document`\r\n   - Set `documentType=offer_letter`.\r\n   - Set `offerId={{offerId}}`.\r\n   - Pick a PDF/JPG/PNG file.\r\n\r\n4. If offer body has scholarship enabled:\r\n   - Run `03 Documents / Upload Document` again.\r\n   - Set `documentType=scholarship_letter`.\r\n   - Keep `offerId={{offerId}}`.\r\n\r\n5. `05 Student Offers / Submit Offer`\r\n\r\n6. `05 Student Offers / List My Offers`\r\n   - Confirm offer is `under_review`.\r\n\r\n## Story 6: Admin Reviews Offer\r\n\r\n1. `07 Admin Offer Review / List Offers (Admin)`\r\n\r\n2. `07 Admin Offer Review / Get Offer (Admin)`\r\n\r\n3. `07 Admin Offer Review / Review Offer - Approve`\r\n\r\n4. `05 Student Offers / List My Offers`\r\n   - Confirm offer is approved from student side.\r\n\r\n## Story 7: Edited Approved Offer Goes Back Under Review\r\n\r\n1. `05 Student Offers / Update Offer`\r\n   - Change a visible field, such as `offerType`, `tuitionFeePerYear`, or `conditions`.\r\n\r\n2. `05 Student Offers / Get Offer`\r\n   - Confirm status moved back to `under_review`.\r\n\r\n3. `07 Admin Offer Review / Get Offer Revisions (Admin)`\r\n   - Confirm changed fields are listed.\r\n\r\n4. `07 Admin Offer Review / Review Offer - Approve`\r\n   - Approve the revised offer again.\r\n\r\n## Story 8: Student Raises Query And Mentor Resolves It\r\n\r\n1. `08 Queries / Ticketing / Create General Query`\r\n   - Copy returned query id into `queryId`.\r\n\r\n2. `08 Queries / Ticketing / List My Queries`\r\n\r\n3. `09 Admin Queries / List Queries (Admin)`\r\n\r\n4. `14 Admin Volunteers Grid / List All Volunteers (Master Admin)`\r\n   - Copy a mentor/volunteer user id into `mentorId`.\r\n\r\n5. `09 Admin Queries / Assign Query To Mentor`\r\n   - Uses `queryId` and `mentorId`.\r\n\r\n6. `10 Mentor Queries / List Assigned Queries (Mentor)`\r\n\r\n7. `10 Mentor Queries / Accept Assigned Query (Mentor)`\r\n\r\n8. `10 Mentor Queries / Add Query Message (Mentor)`\r\n\r\n9. `08 Queries / Ticketing / Add Query Message`\r\n   - Student replies.\r\n\r\n10. `09 Admin Queries / Add Query Message (Admin)`\r\n    - Admin can also reply.\r\n\r\n11. `10 Mentor Queries / Resolve Query (Mentor)`\r\n\r\n12. `08 Queries / Ticketing / Get My Query`\r\n    - Confirm query is resolved.\r\n\r\n## Story 9: Announcements\r\n\r\n1. `12 Admin Announcements / Create Announcement`\r\n   - Create a published announcement.\r\n   - Copy announcement id into `announcementId`.\r\n\r\n2. `11 Announcements / List Announcements`\r\n   - Student/mentor/admin can read published announcements.\r\n\r\n3. `12 Admin Announcements / Update Announcement`\r\n\r\n4. `12 Admin Announcements / Delete Announcement`\r\n\r\n## Story 10: Admin Grids, Filters, Summaries, And Exports\r\n\r\n1. `13 Admin Students Grid / List All Students (Master Admin)`\r\n   - Check students and summary counts.\r\n\r\n2. `13 Admin Students Grid / Combined Student Filters With Pagination`\r\n\r\n3. `13 Admin Students Grid / Export Students CSV (Master Admin)`\r\n\r\n4. `14 Admin Volunteers Grid / List All Volunteers (Master Admin)`\r\n   - Check volunteers and summary counts.\r\n\r\n5. `14 Admin Volunteers Grid / Update Volunteer Assignment (Master Admin)`\r\n\r\n6. `14 Admin Volunteers Grid / Export Volunteers CSV (Master Admin)`\r\n\r\n7. `07 Admin Offer Review / List Offers (Admin)`\r\n   - Check offer summaries.\r\n\r\n8. `07 Admin Offer Review / Export Offers CSV (Master Admin)`\r\n\r\nImportant: CSV exports must not expose public document URLs. Sensitive file references should stay as document IDs or protected download paths.\r\n\r\n## Story 11: Regional Admin Scoped Access\r\n\r\n1. `07 Admin Offer Review / Regional Admin Offers`\r\n   - Should show only the regional admin\u0027s region.\r\n\r\n2. `13 Admin Students Grid / Regional Admin Students`\r\n   - Should show students with offers in that region.\r\n\r\n3. `14 Admin Volunteers Grid / Regional Admin Volunteers`\r\n   - Should show volunteers assigned/preferred for that region.\r\n\r\n4. `09 Admin Queries / List Queries (Admin)` using `regionalCookies`\r\n   - Should show regional queries only.\r\n\r\n## Story 12: Dashboards\r\n\r\n1. `16 Dashboards / Student Dashboard`\r\n2. `16 Dashboards / Admin Dashboard (Master Admin)`\r\n3. `16 Dashboards / Admin Dashboard (Regional Admin)`\r\n4. `16 Dashboards / Mentor Dashboard`\r\n\r\n## Story 13: Audit Logs\r\n\r\n1. `15 Admin Audit Logs / List Audit Logs`\r\n2. `15 Admin Audit Logs / Filter Audit Logs By Action`\r\n3. `15 Admin Audit Logs / Filter Audit Logs By Document Downloads`\r\n4. Copy one audit id into `auditLogId`.\r\n5. `15 Admin Audit Logs / Get Audit Log`\r\n\r\n## Story 14: Auth Recovery And Email Verification\r\n\r\n1. `01 Auth / Forgot Password`\r\n   - Copy token from email link into `resetToken`.\r\n\r\n2. `01 Auth / Reset Password`\r\n\r\n3. Login again with the new password.\r\n\r\n4. `01 Auth / Send Verification Email`\r\n   - Copy token from email link into `verificationToken`.\r\n\r\n5. `01 Auth / Verify Email`\r\n\r\nResend testing may only send to allowed test recipients unless a sending domain is verified.\r\n\r\n## Story 15: Negative Security Tests\r\n\r\nRun these after the happy path:\r\n\r\n1. `99 Negative / Security Tests / Get Me - Unauthenticated`\r\n2. `99 Negative / Security Tests / Admin Endpoint - Student Role`\r\n3. `99 Negative / Security Tests / Admin Offers - Regional Admin Other Region Should Fail`\r\n4. `99 Negative / Security Tests / Mentor Access Unassigned Query`\r\n5. `99 Negative / Security Tests / Mentor Accept Unassigned Query Should Fail`\r\n6. `99 Negative / Security Tests / Audit Logs - Regional Admin Should Fail`\r\n7. `99 Negative / Security Tests / Reset Password - Invalid Token Should Fail`\r\n8. `99 Negative / Security Tests / Verify Email - Invalid Token Should Fail`\r\n\r\n## Variables You Will Fill While Testing\r\n\r\n- `regionId`: from `02 Config / Master Data / List Regions`\r\n- `otherRegionId`: region different from Regional Admin region\r\n- `offerId`: from `05 Student Offers / Create Offer`\r\n- `queryId`: from `08 Queries / Ticketing / Create General Query`\r\n- `mentorId`: from `14 Admin Volunteers Grid / List All Volunteers`\r\n- `announcementId`: from `12 Admin Announcements / Create Announcement`\r\n- `auditLogId`: from `15 Admin Audit Logs / List Audit Logs`\r\n- `resetToken`: from password reset email\r\n- `verificationToken`: from verification email",
+                 "description":  "# Gaza40+ API Full Testing Story\r\n\r\nRun the collection in this order to test the complete backend flow. This is written as a story, not as feature notes.\r\n\r\n## Setup Once\r\n\r\n1. Start API: `corepack pnpm dev`\r\n2. Seed DB if needed:\r\n   - `corepack pnpm prisma:seed`\r\n   - `corepack pnpm prisma:seed:admin`\r\n   - `corepack pnpm prisma:seed:regional-admin`\r\n3. Set collection variable `baseUrl` to `http://localhost:4000`.\r\n\r\n## Story 1: Basic Server Check\r\n\r\n1. `00 Health / Health`\r\n2. `00 Health / Health DB`\r\n\r\n## Story 2: Create The Main Test Users\r\n\r\n1. `01 Auth / Register Student`\r\n   - Captures `studentCookies`.\r\n   - If student already exists, run `01 Auth / Login Student`.\r\n\r\n2. `01 Auth / Register Volunteer`\r\n   - Captures `volunteerCookies`.\r\n   - If volunteer already exists, run `01 Auth / Login Volunteer`.\r\n\r\n3. `01 Auth / Login Master Admin`\r\n   - Captures `adminCookies`.\r\n\r\n4. `01 Auth / Login Regional Admin`\r\n   - Captures `regionalCookies`.\r\n\r\n5. Optional check: `01 Auth / Get Current User`\r\n   - Auth responses return an enriched user object for frontend session bootstrapping: display fields, roles, account status, email verification status, and role-specific profile summaries.\r\n\r\n## Story 3: Student Completes And Submits Profile\r\n\r\n1. `04 Student Profile / Get My Profile`\r\n\r\n2. `04 Student Profile / Update My Profile`\r\n\r\n3. Optional document testing:\r\n   - `03 Documents / Upload Document`\r\n   - Upload `consent_form`.\r\n   - Run it again and upload `national_id`.\r\n\r\n4. `04 Student Profile / Submit My Profile`\r\n   - Required profile documents must be uploaded before this step.\r\n\r\n5. `04 Student Profile / Get My Profile`\r\n   - Confirm status is `under_review`.\r\n\r\n## Story 4: Master Admin Reviews Student Profile\r\n\r\n1. `06 Admin Student Profile Review / List Student Profiles`\r\n   - Find the submitted profile.\r\n   - Copy profile id into the profile review request path.\r\n\r\n2. `06 Admin Student Profile Review / Get Student Profile`\r\n\r\n3. `06 Admin Student Profile Review / Review Student Profile`\r\n   - Use body `{ \"status\": \"approved\", \"notes\": \"Profile reviewed and approved.\" }`.\r\n\r\n4. Student can now create offers.\r\n\r\n## Story 5: Student Creates And Submits Offer\r\n\r\n1. `05 Student Offers / Create Offer`\r\n   - Copy returned offer id into collection variable `offerId`.\r\n\r\n2. `05 Student Offers / Get Offer`\r\n\r\n3. `03 Documents / Upload Document`\r\n   - Set `documentType=offer_letter`.\r\n   - Set `offerId={{offerId}}`.\r\n   - Pick a PDF/JPG/PNG file.\r\n\r\n4. If offer body has scholarship enabled:\r\n   - Run `03 Documents / Upload Document` again.\r\n   - Set `documentType=scholarship_letter`.\r\n   - Keep `offerId={{offerId}}`.\r\n\r\n5. `05 Student Offers / Submit Offer`\r\n\r\n6. `05 Student Offers / List My Offers`\r\n   - Confirm offer is `under_review`.\r\n\r\n## Story 6: Admin Reviews Offer\r\n\r\n1. `07 Admin Offer Review / List Offers (Admin)`\r\n\r\n2. `07 Admin Offer Review / Get Offer (Admin)`\r\n\r\n3. `07 Admin Offer Review / Review Offer - Approve`\r\n\r\n4. `05 Student Offers / List My Offers`\r\n   - Confirm offer is approved from student side.\r\n\r\n## Story 7: Edited Approved Offer Goes Back Under Review\r\n\r\n1. `05 Student Offers / Update Offer`\r\n   - Change a visible field, such as `offerType`, `tuitionFeePerYear`, or `conditions`.\r\n\r\n2. `05 Student Offers / Get Offer`\r\n   - Confirm status moved back to `under_review`.\r\n\r\n3. `07 Admin Offer Review / Get Offer Revisions (Admin)`\r\n   - Confirm changed fields are listed.\r\n\r\n4. `07 Admin Offer Review / Review Offer - Approve`\r\n   - Approve the revised offer again.\r\n\r\n## Story 8: Student Raises Query And Mentor Resolves It\r\n\r\n1. `08 Queries / Ticketing / Create General Query`\r\n   - Copy returned query id into `queryId`.\r\n\r\n2. `08 Queries / Ticketing / List My Queries`\r\n\r\n3. `09 Admin Queries / List Queries (Admin)`\r\n\r\n4. `14 Admin Volunteers Grid / List All Volunteers (Master Admin)`\r\n   - Copy a mentor/volunteer user id into `mentorId`.\r\n\r\n5. `09 Admin Queries / Assign Query To Mentor`\r\n   - Uses `queryId` and `mentorId`.\r\n\r\n6. `10 Mentor Queries / List Assigned Queries (Mentor)`\r\n\r\n7. `10 Mentor Queries / Accept Assigned Query (Mentor)`\r\n\r\n8. `10 Mentor Queries / Add Query Message (Mentor)`\r\n\r\n9. `08 Queries / Ticketing / Add Query Message`\r\n   - Student replies.\r\n\r\n10. `09 Admin Queries / Add Query Message (Admin)`\r\n    - Admin can also reply.\r\n\r\n11. `10 Mentor Queries / Resolve Query (Mentor)`\r\n\r\n12. `08 Queries / Ticketing / Get My Query`\r\n    - Confirm query is resolved.\r\n\r\n## Story 9: Announcements\r\n\r\n1. `12 Admin Announcements / Create Announcement`\r\n   - Create a published announcement.\r\n   - Copy announcement id into `announcementId`.\r\n\r\n2. `11 Announcements / List Announcements`\r\n   - Student/mentor/admin can read published announcements.\r\n\r\n3. `12 Admin Announcements / Update Announcement`\r\n\r\n4. `12 Admin Announcements / Delete Announcement`\r\n\r\n## Story 10: Admin Grids, Filters, Summaries, And Exports\r\n\r\n1. `13 Admin Students Grid / List All Students (Master Admin)`\r\n   - Check students and summary counts.\r\n\r\n2. `13 Admin Students Grid / Combined Student Filters With Pagination`\r\n\r\n3. `13 Admin Students Grid / Export Students CSV (Master Admin)`\r\n\r\n4. `14 Admin Volunteers Grid / List All Volunteers (Master Admin)`\r\n   - Check volunteers and summary counts.\r\n\r\n5. `14 Admin Volunteers Grid / Update Volunteer Assignment (Master Admin)`\r\n\r\n6. `14 Admin Volunteers Grid / Export Volunteers CSV (Master Admin)`\r\n\r\n7. `07 Admin Offer Review / List Offers (Admin)`\r\n   - Check offer summaries.\r\n\r\n8. `07 Admin Offer Review / Export Offers CSV (Master Admin)`\r\n\r\nImportant: CSV exports must not expose public document URLs. Sensitive file references should stay as document IDs or protected download paths.\r\n\r\n## Story 11: Regional Admin Scoped Access\r\n\r\n1. `07 Admin Offer Review / Regional Admin Offers`\r\n   - Should show only the regional admin\u0027s region.\r\n\r\n2. `13 Admin Students Grid / Regional Admin Students`\r\n   - Should show students with offers in that region.\r\n\r\n3. `14 Admin Volunteers Grid / Regional Admin Volunteers`\r\n   - Should show volunteers assigned/preferred for that region.\r\n\r\n4. `09 Admin Queries / List Queries (Admin)` using `regionalCookies`\r\n   - Should show regional queries only.\r\n\r\n## Story 12: Dashboards\r\n\r\n1. `16 Dashboards / Student Dashboard`\r\n2. `16 Dashboards / Admin Dashboard (Master Admin)`\r\n3. `16 Dashboards / Admin Dashboard (Regional Admin)`\r\n4. `16 Dashboards / Mentor Dashboard`\r\n\r\n## Story 13: Audit Logs\r\n\r\n1. `15 Admin Audit Logs / List Audit Logs`\r\n2. `15 Admin Audit Logs / Filter Audit Logs By Action`\r\n3. `15 Admin Audit Logs / Filter Audit Logs By Document Downloads`\r\n4. Copy one audit id into `auditLogId`.\r\n5. `15 Admin Audit Logs / Get Audit Log`\r\n\r\n## Story 14: Auth Recovery And Email Verification\r\n\r\n1. `01 Auth / Forgot Password`\r\n   - Copy token from email link into `resetToken`.\r\n\r\n2. `01 Auth / Reset Password`\r\n\r\n3. Login again with the new password.\r\n\r\n4. `01 Auth / Send Verification Email`\r\n   - Copy token from email link into `verificationToken`.\r\n\r\n5. `01 Auth / Verify Email`\r\n\r\nResend testing may only send to allowed test recipients unless a sending domain is verified.\r\n\r\n## Story 15: Negative Security Tests\r\n\r\nRun these after the happy path:\r\n\r\n1. `99 Negative / Security Tests / Get Me - Unauthenticated`\r\n2. `99 Negative / Security Tests / Admin Endpoint - Student Role`\r\n3. `99 Negative / Security Tests / Admin Offers - Regional Admin Other Region Should Fail`\r\n4. `99 Negative / Security Tests / Mentor Access Unassigned Query`\r\n5. `99 Negative / Security Tests / Mentor Accept Unassigned Query Should Fail`\r\n6. `99 Negative / Security Tests / Audit Logs - Regional Admin Should Fail`\r\n7. `99 Negative / Security Tests / Reset Password - Invalid Token Should Fail`\r\n8. `99 Negative / Security Tests / Verify Email - Invalid Token Should Fail`\r\n\r\n## Variables You Will Fill While Testing\r\n\r\n- `regionId`: from `02 Config / Master Data / List Regions`\r\n- `otherRegionId`: region different from Regional Admin region\r\n- `offerId`: from `05 Student Offers / Create Offer`\r\n- `queryId`: from `08 Queries / Ticketing / Create General Query`\r\n- `mentorId`: from `14 Admin Volunteers Grid / List All Volunteers`\r\n- `announcementId`: from `12 Admin Announcements / Create Announcement`\r\n- `auditLogId`: from `15 Admin Audit Logs / List Audit Logs`\r\n- `resetToken`: from password reset email\r\n- `verificationToken`: from verification email",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
                  "_exporter_id":  "24915038"
              },
@@ -4680,6 +4680,557 @@
                               ]
                  },
                  {
+                     "name":  "17 Site Content (CMS)",
+                     "item":  [
+                                  {
+                                      "name":  "Public About (published)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/public/about",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "public",
+                                                                               "about"
+                                                                           ]
+                                                              },
+                                                      "description":  "Public: published About page blocks with media resolved. page is null until first publish."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Public Impact Stats",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/public/impact",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "public",
+                                                                               "impact"
+                                                                           ]
+                                                              },
+                                                      "description":  "Public: active impact statistics, sorted. Each has an optional asOf date."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Public Stories",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/public/stories?limit=12\u0026page=1",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "public",
+                                                                               "stories"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "limit",
+                                                                                    "value":  "12"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "1"
+                                                                                }
+                                                                            ]
+                                                              },
+                                                      "description":  "Public: published stories with current consent only. Photo is null unless photo consent is granted."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Public Story Detail",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/public/stories/{{storyId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "public",
+                                                                               "stories",
+                                                                               "{{storyId}}"
+                                                                           ]
+                                                              },
+                                                      "description":  "Public: one published story. 404 if unpublished or consent withdrawn."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Public Media",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/public/media/{{mediaId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "public",
+                                                                               "media",
+                                                                               "{{mediaId}}"
+                                                                           ]
+                                                              },
+                                                      "description":  "Public: image by id. 404 when the asset is private or deleted."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Upload Media",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/media",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "media"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: multipart form-data. Fields: file (jpeg/png/webp, max 5MB), alt (required), purpose (site|story; story photos start private)."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Media Preview (private ok)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/media/{{mediaId}}/file",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "media",
+                                                                               "{{mediaId}}",
+                                                                               "file"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: serves the image even when it is not public."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin List Impact Stats",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/impact",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "impact"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: all impact stats including inactive."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Create Impact Stat",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/impact",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "impact"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: create a statistic. asOf is optional.",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"label\": \"Students registered\",\n  \"value\": 1500,\n  \"suffix\": \"+\",\n  \"icon\": \"groups\",\n  \"asOf\": \"2026-09-01\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Reorder Impact Stats",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/impact/order",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "impact",
+                                                                               "order"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: set display order from a list of ids.",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"ids\": [\"{{impactStatId}}\"]\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Get About (draft)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/about",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "about"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: draft blocks, published version and hasUnpublishedChanges."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Publish About",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/about/publish",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "about",
+                                                                               "publish"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: copy the draft to the public version and bump the version."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin List Stories",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/stories",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "stories"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: all stories with consent metadata."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Create Story",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/stories",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "stories"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: create an unpublished story. First/preferred name only.",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"displayName\": \"Example\",\n  \"country\": \"Gaza\",\n  \"journey\": \"\u003cp\u003eJourney text.\u003c/p\u003e\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Set Story Consent",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/stories/{{storyId}}/consent",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "stories",
+                                                                               "{{storyId}}",
+                                                                               "consent"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: status none|pending|granted|withdrawn. granted requires note. Anything but granted unpublishes the story and hides its photo.",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"status\": \"granted\",\n  \"photoConsent\": false,\n  \"note\": \"Signed form held in the consent archive\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Publish Story",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/stories/{{storyId}}/publish",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "stories",
+                                                                               "{{storyId}}",
+                                                                               "publish"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: 409 CONSENT_REQUIRED unless consent is granted."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Admin Unpublish Story",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Cookie",
+                                                                         "value":  "{{adminCookies}}",
+                                                                         "disabled":  false
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/admin/site/stories/{{storyId}}/unpublish",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "admin",
+                                                                               "site",
+                                                                               "stories",
+                                                                               "{{storyId}}",
+                                                                               "unpublish"
+                                                                           ]
+                                                              },
+                                                      "description":  "Master Admin: take a story offline."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
                      "name":  "99 Negative / Security Tests",
                      "item":  [
                                   {
@@ -5860,6 +6411,21 @@
                          "key":  "offerId",
                          "value":  "",
                          "description":  "Offer ObjectId."
+                     },
+                     {
+                         "key":  "storyId",
+                         "value":  "",
+                         "description":  "StudentStory ObjectId from 17 Site Content (CMS) / Admin Create Story."
+                     },
+                     {
+                         "key":  "mediaId",
+                         "value":  "",
+                         "description":  "MediaAsset ObjectId from 17 Site Content (CMS) / Admin Upload Media."
+                     },
+                     {
+                         "key":  "impactStatId",
+                         "value":  "",
+                         "description":  "ImpactStat ObjectId from 17 Site Content (CMS) / Admin Create Impact Stat."
                      },
                      {
                          "key":  "volunteerId",

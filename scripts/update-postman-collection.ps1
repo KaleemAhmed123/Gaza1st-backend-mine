@@ -413,6 +413,27 @@ $dashboardItems = @(
 )
 Set-Folder "16 Dashboards" $dashboardItems
 
+$siteContentItems = @(
+  New-Request "Public About (published)" "GET" "{{baseUrl}}/api/public/about" "Public: published About page blocks with media resolved. `page` is null until first publish." $null
+  New-Request "Public Impact Stats" "GET" "{{baseUrl}}/api/public/impact" "Public: active impact statistics, sorted. Each has an optional asOf date." $null
+  New-Request "Public Stories" "GET" "{{baseUrl}}/api/public/stories?limit=12&page=1" "Public: published stories with current consent only. Photo is null unless photo consent is granted." $null
+  New-Request "Public Story Detail" "GET" "{{baseUrl}}/api/public/stories/{{storyId}}" "Public: one published story. 404 if unpublished or consent withdrawn." $null
+  New-Request "Public Media" "GET" "{{baseUrl}}/api/public/media/{{mediaId}}" "Public: image by id. 404 when the asset is private or deleted." $null
+  New-Request "Admin Upload Media" "POST" "{{baseUrl}}/api/admin/site/media" "Master Admin: multipart form-data. Fields: file (jpeg/png/webp, max 5MB), alt (required), purpose (site|story; story photos start private)." "{{adminCookies}}"
+  New-Request "Admin Media Preview (private ok)" "GET" "{{baseUrl}}/api/admin/site/media/{{mediaId}}/file" "Master Admin: serves the image even when it is not public." "{{adminCookies}}"
+  New-Request "Admin List Impact Stats" "GET" "{{baseUrl}}/api/admin/site/impact" "Master Admin: all impact stats including inactive." "{{adminCookies}}"
+  New-Request "Admin Create Impact Stat" "POST" "{{baseUrl}}/api/admin/site/impact" "Master Admin: create a statistic. asOf is optional." "{{adminCookies}}" "{`n  `"label`": `"Students registered`",`n  `"value`": 1500,`n  `"suffix`": `"+`",`n  `"icon`": `"groups`",`n  `"asOf`": `"2026-09-01`"`n}"
+  New-Request "Admin Reorder Impact Stats" "PUT" "{{baseUrl}}/api/admin/site/impact/order" "Master Admin: set display order from a list of ids." "{{adminCookies}}" "{`n  `"ids`": [`"{{impactStatId}}`"]`n}"
+  New-Request "Admin Get About (draft)" "GET" "{{baseUrl}}/api/admin/site/about" "Master Admin: draft blocks, published version and hasUnpublishedChanges." "{{adminCookies}}"
+  New-Request "Admin Publish About" "POST" "{{baseUrl}}/api/admin/site/about/publish" "Master Admin: copy the draft to the public version and bump the version." "{{adminCookies}}"
+  New-Request "Admin List Stories" "GET" "{{baseUrl}}/api/admin/site/stories" "Master Admin: all stories with consent metadata." "{{adminCookies}}"
+  New-Request "Admin Create Story" "POST" "{{baseUrl}}/api/admin/site/stories" "Master Admin: create an unpublished story. First/preferred name only." "{{adminCookies}}" "{`n  `"displayName`": `"Example`",`n  `"country`": `"Gaza`",`n  `"journey`": `"<p>Journey text.</p>`"`n}"
+  New-Request "Admin Set Story Consent" "PUT" "{{baseUrl}}/api/admin/site/stories/{{storyId}}/consent" "Master Admin: status none|pending|granted|withdrawn. granted requires note. Anything but granted unpublishes the story and hides its photo." "{{adminCookies}}" "{`n  `"status`": `"granted`",`n  `"photoConsent`": false,`n  `"note`": `"Signed form held in the consent archive`"`n}"
+  New-Request "Admin Publish Story" "POST" "{{baseUrl}}/api/admin/site/stories/{{storyId}}/publish" "Master Admin: 409 CONSENT_REQUIRED unless consent is granted." "{{adminCookies}}"
+  New-Request "Admin Unpublish Story" "POST" "{{baseUrl}}/api/admin/site/stories/{{storyId}}/unpublish" "Master Admin: take a story offline." "{{adminCookies}}"
+)
+Set-Folder "17 Site Content (CMS)" $siteContentItems
+
 $studentGridItems = @(
   New-Request "List All Students (Master Admin)" "GET" "{{baseUrl}}/api/admin/students" "Master Admin: list all registered students with profile, offer summary, and aggregate counts." "{{adminCookies}}"
   New-Request "Search Students (Master Admin)" "GET" "{{baseUrl}}/api/admin/students?search=student" "Master Admin: search by name, email, phone, or English profile name." "{{adminCookies}}"
@@ -577,6 +598,9 @@ $desiredVariables = @(
   @{ key = "otherRegionId"; value = ""; description = "Region ObjectId different from the seeded regional admin region." }
   @{ key = "adminUserId"; value = ""; description = "Admin user ObjectId for audit log actor filters." }
   @{ key = "offerId"; value = ""; description = "Offer ObjectId." }
+  @{ key = "storyId"; value = ""; description = "StudentStory ObjectId from 17 Site Content (CMS) / Admin Create Story." }
+  @{ key = "mediaId"; value = ""; description = "MediaAsset ObjectId from 17 Site Content (CMS) / Admin Upload Media." }
+  @{ key = "impactStatId"; value = ""; description = "ImpactStat ObjectId from 17 Site Content (CMS) / Admin Create Impact Stat." }
   @{ key = "volunteerId"; value = ""; description = "Volunteer user ObjectId from GET /api/admin/volunteers." }
   @{ key = "queryId"; value = ""; description = "Query ObjectId from POST /api/queries or admin query list." }
   @{ key = "auditLogId"; value = ""; description = "Audit log ObjectId from GET /api/admin/audit-logs." }
@@ -626,6 +650,7 @@ $folderOrder = @(
   "14 Admin Volunteers Grid",
   "15 Admin Audit Logs",
   "16 Dashboards",
+  "17 Site Content (CMS)",
   "99 Negative / Security Tests"
 )
 
