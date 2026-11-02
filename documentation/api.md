@@ -220,14 +220,14 @@ Seeded groups include:
 - `course_field`
 - `course_level`
 - `offer_type`
-- `query_category`
+- `query_type`
 - `announcement_category`
 
 ```powershell
 curl.exe -i "http://localhost:4000/api/config/options?groupKey=course_field"
 curl.exe -i "http://localhost:4000/api/config/options?groupKey=course_level"
 curl.exe -i "http://localhost:4000/api/config/options?groupKey=offer_type"
-curl.exe -i "http://localhost:4000/api/config/options?groupKey=query_category"
+curl.exe -i "http://localhost:4000/api/config/options?groupKey=query_type"
 ```
 
 ### `GET /api/config/universities`

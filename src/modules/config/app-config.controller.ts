@@ -8,12 +8,11 @@ import { invalidateModuleAccessCache } from "../../middleware/module-access.midd
 // single source of truth for "the current one," not this config table.
 const PUBLIC_CONFIG_KEYS = [
   "homepage_faqs",
-  "homepage_metrics",
-  "require_admin_approval_tags",
   "announcement_limits",
   "enable_student_chat",
   "homepage_timeline",
-  "navigation_tab_controls"
+  "navigation_tab_controls",
+  "enable_public_stories"
 ];
 
 export async function getPublicConfigHandler(req: Request, res: Response) {

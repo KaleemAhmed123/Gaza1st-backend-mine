@@ -193,7 +193,7 @@ Recommended groups:
 - `course_field`
 - `course_level`
 - `offer_type`
-- `query_category`
+- `query_type`
 - `announcement_category`
 
 Rules:

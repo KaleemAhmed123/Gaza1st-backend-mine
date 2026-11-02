@@ -500,6 +500,96 @@ model AppConfig {
   updatedAt   DateTime @updatedAt
 }
 
+// ---------------------------------------------------------------------------
+// Public site content (About page, Impact stats, Student Stories, site media)
+// All of it is master_admin-managed and served through /api/public/*.
+// ---------------------------------------------------------------------------
+
+enum StoryConsentStatus {
+  none
+  pending
+  granted
+  withdrawn
+}
+
+// Public-facing image. Served by id only while isPublic is true and deletedAt is null,
+// so flipping isPublic off (e.g. on consent withdrawal) stops the URL resolving at once.
+model MediaAsset {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  storageKey    String
+  storageBucket String
+  mimeType      String
+  sizeBytes     Int
+  width         Int?
+  height        Int?
+  alt           String
+  isPublic      Boolean   @default(true)
+  uploadedBy    String    @db.ObjectId
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+
+  @@index([isPublic])
+}
+
+model ImpactStat {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  label     String
+  value     Int
+  suffix    String?   // e.g. "+" or "%"
+  icon      String?   // Material Symbols name
+  asOf      DateTime? // optional "Updated <Month YYYY>"
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([isActive, sortOrder])
+}
+
+// One row per page slug ("about"). `draft` and `published` hold the zod-validated block list.
+model SitePage {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  slug        String    @unique
+  draft       Json
+  published   Json?
+  version     Int       @default(0)
+  publishedAt DateTime?
+  publishedBy String?   @db.ObjectId
+  updatedBy   String?   @db.ObjectId
+  updatedAt   DateTime  @updatedAt
+}
+
+// Deliberately no surname field and no link to the student's User record (data minimisation).
+model StudentStory {
+  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
+  displayName        String             // first or preferred name only
+  country            String
+  previousEducation  String?
+  university         String?
+  course             String?
+  scholarship        String?
+  journey            String             // sanitised HTML
+  currentStatus      String?
+  quote              String?
+  photoMediaId       String?            @db.ObjectId
+  consentStatus      StoryConsentStatus @default(none)
+  photoConsent       Boolean            @default(false)
+  consentRecordedAt  DateTime?
+  consentRecordedBy  String?            @db.ObjectId
+  consentNote        String?            // where the signed form is held; never the form itself
+  isPublished        Boolean            @default(false)
+  publishedAt        DateTime?
+  sortOrder          Int                @default(0)
+  createdBy          String             @db.ObjectId
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+
+  @@index([isPublished, sortOrder])
+  @@index([consentStatus])
+}
+
 model AuthToken {
   id        String        @id @default(auto()) @map("_id") @db.ObjectId
   userId    String        @db.ObjectId
