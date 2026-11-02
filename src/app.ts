@@ -48,6 +48,7 @@ import { studentProfileRouter } from "./modules/student-profile/student-profile.
 import { universityRouter } from "./modules/offers/university.routes";
 import { csvGeneratorRouter } from "./modules/csv-generator/csv-generator.routes";
 import { adminCsvImportRouter } from "./modules/admin/csv-imports/csv-import.routes";
+import { adminSiteRouter, publicSiteRouter } from "./modules/site-content/site-content.routes";
 
 export const app = express();
 
@@ -96,6 +97,8 @@ app.use("/api/admin/queries", requireModuleEnabled("queries"), adminQueryRouter)
 app.use("/api/admin/announcements", adminAnnouncementRouter);
 app.use("/api/admin/audit-logs", requireModuleEnabled("audit_logs"), adminAuditLogRouter);
 app.use("/api/admin/imports", adminCsvImportRouter);
+app.use("/api/admin/site", adminSiteRouter);
+app.use("/api/public", publicSiteRouter);
 
 app.use("/api/mentor/dashboard", mentorDashboardRouter);
 app.use("/api/mentor/offers", requireModuleEnabled("offers"), mentorOfferRouter);
